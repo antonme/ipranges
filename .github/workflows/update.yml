@@ -27,6 +27,7 @@ jobs:
           bash facebook/downloader.sh
           bash twitter/downloader.sh
           bash linode/downloader.sh
+          bash vkontakte/downloader.sh
 
       - name: Create All-In-One ranges
         run: |
@@ -66,6 +67,7 @@ jobs:
           python utils/merge.py --source=facebook/ipv4.txt | sort -h > facebook/ipv4_merged.txt
           python utils/merge.py --source=twitter/ipv4.txt | sort -h > twitter/ipv4_merged.txt
           python utils/merge.py --source=linode/ipv4.txt | sort -h > linode/ipv4_merged.txt
+          python utils/merge.py --source=vkontakte/ipv4.txt | sort -h vkontakte/ipv4_merged.txt
           python utils/merge.py --source=all/ipv4.txt | sort -h > all/ipv4_merged.txt
           # ipv6
           python utils/merge.py --source=google/ipv6.txt | sort -h > google/ipv6_merged.txt
@@ -78,6 +80,7 @@ jobs:
           python utils/merge.py --source=facebook/ipv6.txt | sort -h > facebook/ipv6_merged.txt
           python utils/merge.py --source=twitter/ipv6.txt | sort -h > twitter/ipv6_merged.txt
           python utils/merge.py --source=linode/ipv6.txt | sort -h > linode/ipv6_merged.txt
+          python utils/merge.py --source=vkontakte/ipv6.txt | sort -h > vkontakte/ipv6_merged.txt
           python utils/merge.py --source=all/ipv6.txt | sort -h > all/ipv6_merged.txt
 
       - name: Commit files

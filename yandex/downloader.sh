@@ -18,16 +18,16 @@ get_maintained() {
     whois -h whois.bgp.net.br -- "-i mnt-by $1" | grep '^route' | awk '{ print $2; }'
 }
 
-get_maintained 'VKCOMPANY-MNT' > /tmp/vkontakte.txt || echo 'failed'
+get_maintained 'YANDEX-MNT' > /tmp/yandex.txt || echo 'failed'
 
 
 # save ipv4
-grep -v ':' /tmp/vkontakte.txt > /tmp/vkontakte-ipv4.txt
+grep -v ':' /tmp/yandex.txt > /tmp/yandex-ipv4.txt
 
 # save ipv6
-grep ':' /tmp/vkontakte.txt > /tmp/vkontakte-ipv6.txt
+grep ':' /tmp/yandex.txt > /tmp/yandex-ipv6.txt
 
 
 # sort & uniq
-sort -h /tmp/vkontakte-ipv4.txt | uniq > vkontakte/ipv4.txt
-sort -h /tmp/vkontakte-ipv6.txt | uniq > vkontakte/ipv6.txt
+sort -h /tmp/yandex-ipv4.txt | uniq > yandex/ipv4.txt
+sort -h /tmp/yandex-ipv6.txt | uniq > yandex/ipv6.txt

@@ -28,6 +28,7 @@ jobs:
           bash twitter/downloader.sh
           bash linode/downloader.sh
           bash vkontakte/downloader.sh
+          bash yandex/downloader.sh
 
       - name: Create All-In-One ranges
         run: |

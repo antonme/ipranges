@@ -7,7 +7,7 @@ on:
 
 jobs:
   updater:
-    runs-on: ubuntu-latest    
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
 
@@ -54,7 +54,7 @@ jobs:
           cat google/ipv4.txt amazon/ipv4.txt microsoft/ipv4.txt oracle/ipv4.txt digitalocean/ipv4.txt bing/ipv4.txt github/ipv4.txt facebook/ipv4.txt twitter/ipv4.txt linode/ipv4.txt cloudflare/ipv4.txt yandex/ipv4.txt vkontakte/ipv4.txt| sort -h | uniq > all/ipv4.txt
           cat google/ipv6.txt amazon/ipv6.txt microsoft/ipv6.txt digitalocean/ipv6.txt github/ipv6.txt facebook/ipv6.txt twitter/ipv6.txt linode/ipv6.txt | sort -h | uniq > all/ipv6.txt
 
-     - name: Merge Ranges
+      - name: Merge Ranges
         run: |
           set -euo pipefail
           set -x

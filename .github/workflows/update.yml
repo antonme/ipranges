@@ -6,8 +6,7 @@ on:
     - cron: '8 */4 * * *' # At minute 8 past every 4th hour
     
 jobs:
-
-  run-updater:
+  update:
     runs-on: ubuntu-latest    
     steps:
       - uses: actions/checkout@v2

@@ -14,6 +14,9 @@ jobs:
       - name: Install WHOIS client
         run: sudo apt install -y whois
 
+      - name: Install JQ
+        run: sudo apt install -y jq
+
       - name: Set up Python 3.7
         uses: actions/setup-python@v2
         with:
@@ -49,6 +52,11 @@ jobs:
           bash vkontakte/downloader.sh
           bash yandex/downloader.sh
           bash cloudflare/downloader.sh
+          bash rostelecom/downloader.sh
+          bash rugov/downloader.sh
+          bash qrator/downloader.sh
+          bash ozonru/downloader.sh
+          bash fastly/downloader.sh
 
       - name: Create All-In-One ranges
         run: |
@@ -72,6 +80,11 @@ jobs:
           python utils/merge.py --source=linode/ipv4.txt | sort -h > linode/ipv4_merged.txt
           python utils/merge.py --source=vkontakte/ipv4.txt | sort -h >vkontakte/ipv4_merged.txt
           python utils/merge.py --source=yandex/ipv4.txt | sort -h >yandex/ipv4_merged.txt
+          python utils/merge.py --source=rostelecom/ipv4.txt | sort -h > rostelecom/ipv4_merged.txt
+          python utils/merge.py --source=rugov/ipv4.txt | sort -h > rugov/ipv4_merged.txt
+          python utils/merge.py --source=ozonru/ipv4.txt | sort -h > ozonru/ipv4_merged.txt
+          python utils/merge.py --source=fastly/ipv4.txt | sort -h > fastly/ipv4_merged.txt
+          python utils/merge.py --source=cloudflare/ipv4.txt | sort -h > cloudflare/ipv4_merged.txt
           python utils/merge.py --source=all/ipv4.txt | sort -h > all/ipv4_merged.txt
           # ipv6
           python utils/merge.py --source=google/ipv6.txt | sort -h > google/ipv6_merged.txt

@@ -7,7 +7,7 @@ on:
     
 jobs:
 
-  updater:
+  run-updater:
     runs-on: ubuntu-latest    
     steps:
       - uses: actions/checkout@v2

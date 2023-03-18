@@ -85,6 +85,7 @@ jobs:
           python utils/merge.py --source=ozonru/ipv4.txt | sort -h > ozonru/ipv4_merged.txt
           python utils/merge.py --source=fastly/ipv4.txt | sort -h > fastly/ipv4_merged.txt
           python utils/merge.py --source=cloudflare/ipv4.txt | sort -h > cloudflare/ipv4_merged.txt
+          python utils/merge.py --source=sber/ipv4.txt | sort -h > sber/ipv4_merged.txt
           python utils/merge.py --source=all/ipv4.txt | sort -h > all/ipv4_merged.txt
           # ipv6
           python utils/merge.py --source=google/ipv6.txt | sort -h > google/ipv6_merged.txt

@@ -23,6 +23,8 @@ get_routes 'AS35995' >> /tmp/twitter.txt || echo 'failed'
 get_routes 'AS54888' >> /tmp/twitter.txt || echo 'failed'
 get_routes 'AS63179' >> /tmp/twitter.txt || echo 'failed'
 
+python utils/arin-org.py TWITT >> /tmp/twitter.txt
+
 
 # save ipv4
 grep -v ':' /tmp/twitter.txt > /tmp/twitter-ipv4.txt

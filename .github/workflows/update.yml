@@ -14,24 +14,6 @@ jobs:
       - name: Install WHOIS client
         run: sudo apt install -y whois
 
-      - name: Set up Python 3.7
-        uses: actions/setup-python@v2
-        with:
-          python-version: '3.7'
-
-      - name: Cache pip
-        uses: actions/cache@v2
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('utils/requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
-            ${{ runner.os }}-
-
-      - name: Install dependencies
-        run: |
-          pip install -r utils/requirements.txt
-
       - name: Download IPs
         run: |
           set -x

@@ -4,8 +4,9 @@ on:
   workflow_dispatch:
   schedule:
     - cron: '8 */4 * * *' # At minute 8 past every 4th hour
+
 jobs:
-  run-update-job:
+  updater:
     runs-on: ubuntu-latest    
     steps:
       - uses: actions/checkout@v2

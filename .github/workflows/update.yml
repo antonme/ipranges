@@ -61,7 +61,10 @@ jobs:
           bash rugov/downloader.sh
           bash qrator/downloader.sh
           bash ozonru/downloader.sh
+          bash alibaba/downloader.sh
+          bash akamai/downloader.sh
           bash fastly/downloader.sh
+          bash sber/downloader.sh
 
       - name: Create All-In-One ranges
         run: |

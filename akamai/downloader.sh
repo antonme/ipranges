@@ -16,7 +16,7 @@ get_routes() {
 
 #get_routes 'AS63179' >> /tmp/akamai.txt || echo 'failed'
 
-python utils/arin-org.py AKAMAI >> /tmp/akamai.txt
+python utils/arin-org.py AKAMAI > /tmp/akamai.txt
 
 
 # save ipv4
@@ -24,7 +24,6 @@ grep -v ':' /tmp/akamai.txt > /tmp/akamai-ipv4.txt
 
 # save ipv6
 grep ':' /tmp/akamai.txt > /tmp/akamai-ipv6.txt
-
 
 # sort & uniq
 sort -h /tmp/akamai-ipv4.txt | uniq > akamai/ipv4.txt

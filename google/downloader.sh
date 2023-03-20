@@ -13,7 +13,7 @@ set -x
 
 # get from public ranges
 curl -s https://www.gstatic.com/ipranges/goog.txt > /tmp/goog.txt
-curl -s https://www.gstatic.com/ipranges/cloud.json > /tmp/cloud.json
+#curl -s https://www.gstatic.com/ipranges/cloud.json > /tmp/cloud.json
 
 # Public GoogleBot IP ranges
 # From: https://developers.google.com/search/docs/advanced/crawling/verifying-googlebot
@@ -41,19 +41,19 @@ get_dns_spf() {
    done
 }
 
-get_dns_spf "_cloud-netblocks.googleusercontent.com" >> /tmp/netblocks.txt
+#get_dns_spf "_cloud-netblocks.googleusercontent.com" >> /tmp/netblocks.txt
 get_dns_spf "_spf.google.com" >> /tmp/netblocks.txt
 
 
 # save ipv4
 grep -v ':' /tmp/goog.txt > /tmp/google-ipv4.txt
-jq '.prefixes[] | [.ipv4Prefix][] | select(. != null)' -r /tmp/cloud.json >> /tmp/google-ipv4.txt
+#jq '.prefixes[] | [.ipv4Prefix][] | select(. != null)' -r /tmp/cloud.json >> /tmp/google-ipv4.txt
 jq '.prefixes[] | [.ipv4Prefix][] | select(. != null)' -r /tmp/googlebot.json >> /tmp/google-ipv4.txt
 grep -v ':' /tmp/netblocks.txt >> /tmp/google-ipv4.txt
 
 # save ipv6
 grep ':' /tmp/goog.txt > /tmp/google-ipv6.txt
-jq '.prefixes[] | [.ipv6Prefix][] | select(. != null)' -r /tmp/cloud.json >> /tmp/google-ipv6.txt
+#jq '.prefixes[] | [.ipv6Prefix][] | select(. != null)' -r /tmp/cloud.json >> /tmp/google-ipv6.txt
 jq '.prefixes[] | [.ipv6Prefix][] | select(. != null)' -r /tmp/googlebot.json >> /tmp/google-ipv6.txt
 grep ':' /tmp/netblocks.txt >> /tmp/google-ipv6.txt
 

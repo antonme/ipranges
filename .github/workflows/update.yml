@@ -56,6 +56,7 @@ jobs:
           bash linode/downloader.sh
           bash vkontakte/downloader.sh
           bash yandex/downloader.sh
+          bash rambler/downloader.sh
           bash cloudflare/downloader.sh
           bash rostelecom/downloader.sh
           bash rugov/downloader.sh
@@ -89,6 +90,7 @@ jobs:
           python utils/merge.py --source=linode/ipv4.txt | sort -h > linode/ipv4_merged.txt
           python utils/merge.py --source=vkontakte/ipv4.txt | sort -h >vkontakte/ipv4_merged.txt
           python utils/merge.py --source=yandex/ipv4.txt | sort -h >yandex/ipv4_merged.txt
+          python utils/merge.py --source=rambler/ipv4.txt | sort -h >rambler/ipv4_merged.txt
           python utils/merge.py --source=rostelecom/ipv4.txt | sort -h > rostelecom/ipv4_merged.txt
           python utils/merge.py --source=rugov/ipv4.txt | sort -h > rugov/ipv4_merged.txt
           python utils/merge.py --source=ozonru/ipv4.txt | sort -h > ozonru/ipv4_merged.txt
@@ -113,6 +115,7 @@ jobs:
           python utils/merge.py --source=linode/ipv6.txt | sort -h > linode/ipv6_merged.txt
           python utils/merge.py --source=vkontakte/ipv6.txt | sort -h > vkontakte/ipv6_merged.txt
           python utils/merge.py --source=yandex/ipv6.txt | sort -h > yandex/ipv6_merged.txt
+          python utils/merge.py --source=rambler/ipv6.txt | sort -h > rambler/ipv6_merged.txt
           python utils/merge.py --source=all/ipv6.txt | sort -h > all/ipv6_merged.txt
 
       - name: Commit files

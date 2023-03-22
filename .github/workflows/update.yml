@@ -68,6 +68,8 @@ jobs:
           bash sber/downloader.sh
           bash avito/downloader.sh
           bash yandexcloud/downloader.sh
+          bash mtscloud/downloader.sh
+          bash mts/downloader.sh
 
       - name: Create All-In-One ranges
         run: |
@@ -104,6 +106,8 @@ jobs:
           python utils/merge.py --source=akamai/ipv4.txt | sort -h > akamai/ipv4_merged.txt          
           python utils/merge.py --source=avito/ipv4.txt | sort -h > avito/ipv4_merged.txt          
           python utils/merge.py --source=yandexcloud/ipv4.txt | sort -h > yandexcloud/ipv4_merged.txt          
+          python utils/merge.py --source=mtscloud/ipv4.txt | sort -h > mtscloud/ipv4_merged.txt          
+          python utils/merge.py --source=mts/ipv4.txt | sort -h > mts/ipv4_merged.txt          
           python utils/merge.py --source=all/ipv4.txt | sort -h > all/ipv4_merged.txt
           # ipv6
           python utils/merge.py --source=google/ipv6.txt | sort -h > google/ipv6_merged.txt

@@ -24,7 +24,7 @@ get_routes() {
 
 
 #government
-get_maintained 'TFGS-MNT' >> /tmp/rugov.txt || echo 'failed'
+get_maintained 'TFGS-MNT' > /tmp/rugov.txt || echo 'failed'
 get_maintained 'INFR-MNT' >> /tmp/rugov.txt || echo 'failed'
 get_maintained 'ROSNIIROS-MNT' >> /tmp/rugov.txt || echo 'failed'
 #mchs

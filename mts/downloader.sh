@@ -18,8 +18,10 @@ get_maintained() {
 
 #get_maintained 'MNT-CLOUDMTS' > /tmp/mts.txt || echo 'failed'
 get_maintained 'MTU-NOC' > /tmp/mts.txt || echo 'failed'
-get_maintained 'MGTS-MNT' > /tmp/mts.txt || echo 'failed'
-get_maintained 'MGTS-USPD-MNT' > /tmp/mts.txt || echo 'failed'
+sleep 10
+get_maintained 'MGTS-MNT' >> /tmp/mts.txt || echo 'failed'
+sleep 10
+get_maintained 'MGTS-USPD-MNT' >> /tmp/mts.txt || echo 'failed'
 
 
 # save ipv4

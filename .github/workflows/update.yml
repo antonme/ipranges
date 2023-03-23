@@ -43,61 +43,61 @@ jobs:
         run: |
           set -x
           bash google/downloader.sh
-          sleep 10
+          sleep 5
           bash googlecloud/downloader.sh
-          sleep 10
+          sleep 5
           bash amazon/downloader.sh
-          sleep 10
+          sleep 5
           bash microsoft/downloader.sh
-          sleep 10
+          sleep 5
           bash azure/downloader.sh
-          sleep 10
+          sleep 5
           bash oracle/downloader.sh
-          sleep 10
+          sleep 5
           bash digitalocean/downloader.sh
-          sleep 10
+          sleep 5
           bash bing/downloader.sh
-          sleep 10
+          sleep 5
           bash github/downloader.sh
-          sleep 10
+          sleep 5
           bash facebook/downloader.sh
-          sleep 10
+          sleep 5
           bash twitter/downloader.sh
-          sleep 10
+          sleep 5
           bash linode/downloader.sh
-          sleep 10
+          sleep 5
           bash vkontakte/downloader.sh
-          sleep 10
+          sleep 5
           bash yandex/downloader.sh
-          sleep 10
+          sleep 5
           bash rambler/downloader.sh
-          sleep 10
+          sleep 5
           bash cloudflare/downloader.sh
-          sleep 10
+          sleep 5
           bash rostelecom/downloader.sh
-          sleep 10
+          sleep 5
           bash rugov/downloader.sh
-          sleep 10
+          sleep 5
           bash qrator/downloader.sh
-          sleep 10
+          sleep 5
           bash ozonru/downloader.sh
-          sleep 10
+          sleep 5
           bash alibaba/downloader.sh
-          sleep 10
+          sleep 5
           bash akamai/downloader.sh
-          sleep 10
+          sleep 5
           bash fastly/downloader.sh
-          sleep 10
+          sleep 5
           bash sber/downloader.sh
-          sleep 10
+          sleep 5
           bash avito/downloader.sh
-          sleep 10
+          sleep 5
           bash yandexcloud/downloader.sh
-          sleep 10
+          sleep 5
           bash mtscloud/downloader.sh
-          sleep 10
+          sleep 5
           bash mts/downloader.sh
-          sleep 10
+          sleep 5
           bash corbina/downloader.sh
 
       - name: Create All-In-One ranges

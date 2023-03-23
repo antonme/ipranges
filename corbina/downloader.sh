@@ -15,15 +15,13 @@ get_maintained() {
 
 
 
-#get_maintained 'MNT-CLOUDMTS' > /tmp/mts.txt || echo 'failed'
-get_maintained 'MTU-NOC' > /tmp/mts.txt || echo 'failed'
-get_maintained 'MGTS-MNT' > /tmp/mts.txt || echo 'failed'
-get_maintained 'MGTS-USPD-MNT' > /tmp/mts.txt || echo 'failed'
+#get_maintained 'MNT-CLOUDMTS' > /tmp/corbina.txt || echo 'failed'
+get_maintained 'RU-CORBINA-MNT' > /tmp/corbina.txt || echo 'failed'
 
 
 # save ipv4
-grep -v ':' /tmp/mts.txt > /tmp/mts-ipv4.txt
+grep -v ':' /tmp/corbina.txt > /tmp/corbina-ipv4.txt
 
 
 # sort & uniq
-sort -h /tmp/mts-ipv4.txt | uniq > mts/ipv4.txt
+sort -h /tmp/corbina-ipv4.txt | uniq > corbina/ipv4.txt

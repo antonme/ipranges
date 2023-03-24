@@ -14,10 +14,25 @@ get_routes() {
     whois -h whois.bgp.net.br -- "-i origin $1" | grep '^route' | awk '{ print $2; }'
 }
 
-#get_routes 'AS63179' >> /tmp/akamai.txt || echo 'failed'
-
 python utils/arin-org.py AKAMAI > /tmp/akamai.txt
-
+get_routes 'AS12222' >> /tmp/akamai.txt || echo 'failed'
+get_routes 'AS16625' >> /tmp/akamai.txt || echo 'failed'
+get_routes 'AS16702' >> /tmp/akamai.txt || echo 'failed'
+get_routes 'AS17204' >> /tmp/akamai.txt || echo 'failed'
+get_routes 'AS18680' >> /tmp/akamai.txt || echo 'failed'
+get_routes 'AS18717' >> /tmp/akamai.txt || echo 'failed'
+get_routes 'AS20189' >> /tmp/akamai.txt || echo 'failed'
+get_routes 'AS22207' >> /tmp/akamai.txt || echo 'failed'
+get_routes 'AS22452' >> /tmp/akamai.txt || echo 'failed'
+get_routes 'AS23454' >> /tmp/akamai.txt || echo 'failed'
+get_routes 'AS23455' >> /tmp/akamai.txt || echo 'failed'
+get_routes 'AS26008' >> /tmp/akamai.txt || echo 'failed'
+get_routes 'AS30675' >> /tmp/akamai.txt || echo 'failed'
+get_routes 'AS33047' >> /tmp/akamai.txt || echo 'failed'
+get_routes 'AS35993' >> /tmp/akamai.txt || echo 'failed'
+get_routes 'AS35994' >> /tmp/akamai.txt || echo 'failed'
+get_routes 'AS36183' >> /tmp/akamai.txt || echo 'failed'
+get_routes 'AS393560' >> /tmp/akamai.txt || echo 'failed'
 
 # save ipv4
 grep -v ':' /tmp/akamai.txt > /tmp/akamai-ipv4.txt

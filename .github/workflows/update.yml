@@ -99,6 +99,10 @@ jobs:
           bash mts/downloader.sh
           sleep 5
           bash corbina/downloader.sh
+          sleep 5
+          bash imperva/downloader.sh
+          sleep 5
+          bash edgecast/downloader.sh
 
       - name: Create All-In-One ranges
         run: |
@@ -138,6 +142,8 @@ jobs:
           python utils/merge.py --source=mtscloud/ipv4.txt | sort -h > mtscloud/ipv4_merged.txt          
           python utils/merge.py --source=mts/ipv4.txt | sort -h > mts/ipv4_merged.txt          
           python utils/merge.py --source=corbina/ipv4.txt | sort -h > corbina/ipv4_merged.txt          
+          python utils/merge.py --source=imperva/ipv4.txt | sort -h > imperva/ipv4_merged.txt          
+          python utils/merge.py --source=edgecast/ipv4.txt | sort -h > edgecast/ipv4_merged.txt          
           python utils/merge.py --source=all/ipv4.txt | sort -h > all/ipv4_merged.txt
           # ipv6
           python utils/merge.py --source=google/ipv6.txt | sort -h > google/ipv6_merged.txt

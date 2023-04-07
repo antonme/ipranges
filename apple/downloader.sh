@@ -6,19 +6,19 @@ set -x
 
 get_maintained() {
     whois -h whois.ripe.net -- "-i mnt-by $1" > /tmp/ripe.txt
-    cat /tmp/ripe.txt | grep '^route' | awk '{ print $2; }' | grep "\."
+    cat /tmp/ripe.txt | grep '^route' | awk '{ print $2; }'
     whois -h whois.radb.net -- "-i mnt-by $1" | grep '^route' | awk '{ print $2; }'
     whois -h rr.ntt.net -- "-i mnt-by $1" | grep '^route' | awk '{ print $2; }'
     cat /tmp/ripe.txt | grep inetnum|awk '{$1=""; system("ipcalc -b -r "$2" "$4"| tail +2");}'
 }
 
-get_maintained 'APPLE-MNT' > /tmp/apple.txt
+get_maintained 'APPLE-MNT' | grep "/" > /tmp/apple.txt || echo "failed"
 python utils/arin-org.py APPLEC-1-Z >> /tmp/apple.txt
 
 # save ipv4
-grep -v ':' /tmp/apple.txt > /tmp/apple-ipv4.txt
-sort -h /tmp/apple-ipv4.txt | uniq > apple/ipv4.txt
+grep -v ':' /tmp/apple.txt > /tmp/apple-ipv4.txt || echo "failed"
+sort -h /tmp/apple-ipv4.txt | uniq > apple/ipv4.txt || echo "failed"
 
 # save ipv6
-grep ':' /tmp/apple.txt > /tmp/apple-ipv6.txt
-sort -h /tmp/apple-ipv6.txt | uniq > apple/ipv6.txt
+grep ':' /tmp/apple.txt > /tmp/apple-ipv6.txt || echo "failed"
+sort -h /tmp/apple-ipv6.txt | uniq > apple/ipv6.txt || echo "failed"

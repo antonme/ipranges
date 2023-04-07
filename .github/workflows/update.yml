@@ -84,6 +84,10 @@ jobs:
           sleep 5
           bash alibaba/downloader.sh
           sleep 5
+          bash apple/downloader.sh
+          sleep 5
+          bash apple-proxy/downloader.sh
+          sleep 5
           bash akamai/downloader.sh
           sleep 5
           bash fastly/downloader.sh
@@ -144,6 +148,8 @@ jobs:
           python utils/merge.py --source=corbina/ipv4.txt | sort -h > corbina/ipv4_merged.txt          
           python utils/merge.py --source=imperva/ipv4.txt | sort -h > imperva/ipv4_merged.txt          
           python utils/merge.py --source=edgecast/ipv4.txt | sort -h > edgecast/ipv4_merged.txt          
+          python utils/merge.py --source=apple/ipv4.txt | sort -h > apple/ipv4_merged.txt
+          python utils/merge.py --source=apple-proxy/ipv4.txt | sort -h > apple-proxy/ipv4_merged.txt
           python utils/merge.py --source=all/ipv4.txt | sort -h > all/ipv4_merged.txt
           # ipv6
           python utils/merge.py --source=google/ipv6.txt | sort -h > google/ipv6_merged.txt
@@ -160,6 +166,7 @@ jobs:
           python utils/merge.py --source=vkontakte/ipv6.txt | sort -h > vkontakte/ipv6_merged.txt
           python utils/merge.py --source=yandex/ipv6.txt | sort -h > yandex/ipv6_merged.txt
           python utils/merge.py --source=rambler/ipv6.txt | sort -h > rambler/ipv6_merged.txt
+          python utils/merge.py --source=apple-proxy/ipv6.txt | sort -h > apple-proxy/ipv6_merged.txt
           python utils/merge.py --source=all/ipv6.txt | sort -h > all/ipv6_merged.txt
 
       - name: Commit files

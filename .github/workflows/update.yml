@@ -42,6 +42,8 @@ jobs:
       - name: Download IPs
         run: |
           set -x
+          bash tiktok/downloader.sh
+          sleep 5
           bash google/downloader.sh
           sleep 5
           bash googlecloud/downloader.sh

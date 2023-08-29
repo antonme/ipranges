@@ -18,7 +18,7 @@ tr -cd "[:print:]\n" < /tmp/bing_original.json > /tmp/bing.json
 # save ipv4
 jq '.prefixes[] | [.ipv4Prefix][] | select(. != null)' -r /tmp/bing.json > /tmp/bing-ipv4.txt
 curl https://raw.githubusercontent.com/antonme/ipnames/master/resolve-bing.txt >> /tmp/bing-ipv4.txt || echo 'failed'
-curl https://raw.githubusercontent.com/antonme/ipnames/master/ext-resolve-bing.txt >> /tmp/bing-ipv4.txt || echo 'failed'
+#curl https://raw.githubusercontent.com/antonme/ipnames/master/ext-resolve-bing.txt >> /tmp/bing-ipv4.txt || echo 'failed'
 # ipv6 not provided
 
 

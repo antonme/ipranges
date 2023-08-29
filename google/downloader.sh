@@ -51,7 +51,7 @@ grep -v ':' /tmp/goog.txt > /tmp/google-ipv4.txt
 jq '.prefixes[] | [.ipv4Prefix][] | select(. != null)' -r /tmp/googlebot.json >> /tmp/google-ipv4.txt
 grep -v ':' /tmp/netblocks.txt >> /tmp/google-ipv4.txt
 curl https://raw.githubusercontent.com/antonme/ipnames/master/resolve-google.txt >> /tmp/google-ipv4.txt || echo 'failed'
-curl https://raw.githubusercontent.com/antonme/ipnames/master/ext-resolve-google.txt >> /tmp/google-ipv4.txt || echo 'failed'
+#curl https://raw.githubusercontent.com/antonme/ipnames/master/ext-resolve-google.txt >> /tmp/google-ipv4.txt || echo 'failed'
 
 # save ipv6
 grep ':' /tmp/goog.txt > /tmp/google-ipv6.txt

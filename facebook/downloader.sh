@@ -23,7 +23,7 @@ get_routes 'AS54115' >> /tmp/facebook.txt || echo 'failed'
 get_routes 'AS63293' >> /tmp/facebook.txt || echo 'failed'
 get_routes 'AS149642' >> /tmp/facebook.txt || echo 'failed'
 curl https://raw.githubusercontent.com/antonme/ipnames/master/resolve-facebook.txt >> /tmp/facebook.txt || echo 'failed'
-#curl https://raw.githubusercontent.com/antonme/ipnames/master/ext-resolve-facebook.txt >> /tmp/facebook.txt || echo 'failed'
+curl https://raw.githubusercontent.com/antonme/ipnames/master/ext-resolve-facebook.txt >> /tmp/facebook.txt || echo 'failed'
 
 # save ipv4
 grep -v ':' /tmp/facebook.txt > /tmp/facebook-ipv4.txt

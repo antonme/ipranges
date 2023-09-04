@@ -3,7 +3,7 @@ name: "Update"
 on:
   workflow_dispatch:
   schedule:
-    - cron: '8 */8 * * *' # At minute 8 past every 8th hour
+    - cron: '8 3/8 * * *' # At minute 8 past every 8th hour
 
 jobs:
   updater:

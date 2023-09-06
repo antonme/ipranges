@@ -42,6 +42,8 @@ jobs:
       - name: Download IPs
         run: |
           set -x
+          bash youtube/downloader.sh
+          sleep 5
           bash tiktok/downloader.sh
           sleep 5
           bash google/downloader.sh
@@ -109,11 +111,6 @@ jobs:
           bash imperva/downloader.sh
           sleep 5
           bash edgecast/downloader.sh
-
-      - name: Create All-In-One ranges
-        run: |
-          cat google/ipv4.txt amazon/ipv4.txt microsoft/ipv4.txt oracle/ipv4.txt digitalocean/ipv4.txt bing/ipv4.txt github/ipv4.txt facebook/ipv4.txt twitter/ipv4.txt linode/ipv4.txt cloudflare/ipv4.txt yandex/ipv4.txt vkontakte/ipv4.txt| sort -h | uniq > all/ipv4.txt
-          cat google/ipv6.txt amazon/ipv6.txt microsoft/ipv6.txt digitalocean/ipv6.txt github/ipv6.txt facebook/ipv6.txt twitter/ipv6.txt linode/ipv6.txt | sort -h | uniq > all/ipv6.txt
 
       - name: Merge Ranges
         run: |

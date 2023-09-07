@@ -3,7 +3,7 @@ name: "Update"
 on:
   workflow_dispatch:
   schedule:
-    - cron: '8 3/8 * * *' # At minute 8 past every 8th hour
+    - cron: '8 3 * * *' 
 
 jobs:
   updater:
@@ -19,6 +19,12 @@ jobs:
 
       - name: Install ipcalc
         run: sudo apt install -y ipcalc
+
+      - name: Install awk
+        run: sudo apt install -y awk
+
+      - name: Install GNU Parallel
+        run: sudo apt install -y parallel
 
       - name: Set up Python 3.7
         uses: actions/setup-python@v2
@@ -42,132 +48,19 @@ jobs:
       - name: Download IPs
         run: |
           set -x
-          bash youtube/downloader.sh
-          sleep 5
-          bash tiktok/downloader.sh
-          sleep 5
-          bash google/downloader.sh
-          sleep 5
-          bash googlecloud/downloader.sh
-          sleep 5
-          bash amazon/downloader.sh
-          sleep 5
-          bash microsoft/downloader.sh
-          sleep 5
-          bash azure/downloader.sh
-          sleep 5
-          bash oracle/downloader.sh
-          sleep 5
-          bash digitalocean/downloader.sh
-          sleep 5
-          bash bing/downloader.sh
-          sleep 5
-          bash github/downloader.sh
-          sleep 5
-          bash facebook/downloader.sh
-          sleep 5
-          bash twitter/downloader.sh
-          sleep 5
-          bash linode/downloader.sh
-          sleep 5
-          bash vkontakte/downloader.sh
-          sleep 5
-          bash yandex/downloader.sh
-          sleep 5
-          bash rambler/downloader.sh
-          sleep 5
-          bash cloudflare/downloader.sh
-          sleep 5
-          bash rostelecom/downloader.sh
-          sleep 5
-          bash rugov/downloader.sh
-          sleep 5
-          bash qrator/downloader.sh
-          sleep 5
-          bash ozonru/downloader.sh
-          sleep 5
-          bash alibaba/downloader.sh
-          sleep 5
-          bash apple/downloader.sh
-          sleep 5
-          bash apple-proxy/downloader.sh
-          sleep 5
-          bash akamai/downloader.sh
-          sleep 5
-          bash fastly/downloader.sh
-          sleep 5
-          bash sber/downloader.sh
-          sleep 5
-          bash avito/downloader.sh
-          sleep 5
-          bash yandexcloud/downloader.sh
-          sleep 5
-          bash mtscloud/downloader.sh
-          sleep 5
-          bash mts/downloader.sh
-          sleep 5
-          bash corbina/downloader.sh
-          sleep 5
-          bash imperva/downloader.sh
-          sleep 5
-          bash edgecast/downloader.sh
+          find . -name downloader.sh| awk '{print "\nExecuting "$1"\n";system("bash "$1);exit}'
 
-      - name: Merge Ranges
+      - name: Merge ipv4 Ranges
         run: |
           set -euo pipefail
           set -x
-          # ipv4
-          python utils/merge.py --source=google/ipv4.txt | sort -h > google/ipv4_merged.txt
-          python utils/merge.py --source=tiktok/ipv4.txt | sort -h > tiktok/ipv4_merged.txt
-          python utils/merge.py --source=googlecloud/ipv4.txt | sort -h > googlecloud/ipv4_merged.txt
-          python utils/merge.py --source=amazon/ipv4.txt | sort -h > amazon/ipv4_merged.txt
-          python utils/merge.py --source=microsoft/ipv4.txt | sort -h > microsoft/ipv4_merged.txt
-          python utils/merge.py --source=oracle/ipv4.txt | sort -h > oracle/ipv4_merged.txt
-          python utils/merge.py --source=digitalocean/ipv4.txt | sort -h > digitalocean/ipv4_merged.txt
-          python utils/merge.py --source=bing/ipv4.txt | sort -h > bing/ipv4_merged.txt
-          python utils/merge.py --source=github/ipv4.txt | sort -h > github/ipv4_merged.txt
-          python utils/merge.py --source=facebook/ipv4.txt | sort -h > facebook/ipv4_merged.txt
-          python utils/merge.py --source=twitter/ipv4.txt | sort -h > twitter/ipv4_merged.txt
-          python utils/merge.py --source=linode/ipv4.txt | sort -h > linode/ipv4_merged.txt
-          python utils/merge.py --source=vkontakte/ipv4.txt | sort -h >vkontakte/ipv4_merged.txt
-          python utils/merge.py --source=yandex/ipv4.txt | sort -h >yandex/ipv4_merged.txt
-          python utils/merge.py --source=rambler/ipv4.txt | sort -h >rambler/ipv4_merged.txt
-          python utils/merge.py --source=rostelecom/ipv4.txt | sort -h > rostelecom/ipv4_merged.txt
-          python utils/merge.py --source=rugov/ipv4.txt | sort -h > rugov/ipv4_merged.txt
-          python utils/merge.py --source=ozonru/ipv4.txt | sort -h > ozonru/ipv4_merged.txt
-          python utils/merge.py --source=fastly/ipv4.txt | sort -h > fastly/ipv4_merged.txt
-          python utils/merge.py --source=cloudflare/ipv4.txt | sort -h > cloudflare/ipv4_merged.txt
-          python utils/merge.py --source=sber/ipv4.txt | sort -h > sber/ipv4_merged.txt
-          python utils/merge.py --source=azure/ipv4.txt | sort -h > azure/ipv4_merged.txt          
-          python utils/merge.py --source=alibaba/ipv4.txt | sort -h > alibaba/ipv4_merged.txt          
-          python utils/merge.py --source=akamai/ipv4.txt | sort -h > akamai/ipv4_merged.txt          
-          python utils/merge.py --source=avito/ipv4.txt | sort -h > avito/ipv4_merged.txt          
-          python utils/merge.py --source=yandexcloud/ipv4.txt | sort -h > yandexcloud/ipv4_merged.txt          
-          python utils/merge.py --source=mtscloud/ipv4.txt | sort -h > mtscloud/ipv4_merged.txt          
-          python utils/merge.py --source=mts/ipv4.txt | sort -h > mts/ipv4_merged.txt          
-          python utils/merge.py --source=corbina/ipv4.txt | sort -h > corbina/ipv4_merged.txt          
-          python utils/merge.py --source=imperva/ipv4.txt | sort -h > imperva/ipv4_merged.txt          
-          python utils/merge.py --source=edgecast/ipv4.txt | sort -h > edgecast/ipv4_merged.txt          
-          python utils/merge.py --source=apple/ipv4.txt | sort -h > apple/ipv4_merged.txt
-          python utils/merge.py --source=apple-proxy/ipv4.txt | sort -h > apple-proxy/ipv4_merged.txt
-          python utils/merge.py --source=all/ipv4.txt | sort -h > all/ipv4_merged.txt
-          # ipv6
-          python utils/merge.py --source=google/ipv6.txt | sort -h > google/ipv6_merged.txt
-          python utils/merge.py --source=googlecloud/ipv6.txt | sort -h > googlecloud/ipv6_merged.txt
-          python utils/merge.py --source=amazon/ipv6.txt | sort -h > amazon/ipv6_merged.txt
-          python utils/merge.py --source=microsoft/ipv6.txt | sort -h > microsoft/ipv6_merged.txt
-          # oracle not provide ipv6
-          python utils/merge.py --source=digitalocean/ipv6.txt | sort -h > digitalocean/ipv6_merged.txt
-          # bing not provide ipv6
-          python utils/merge.py --source=github/ipv6.txt | sort -h > github/ipv6_merged.txt
-          python utils/merge.py --source=facebook/ipv6.txt | sort -h > facebook/ipv6_merged.txt
-          python utils/merge.py --source=twitter/ipv6.txt | sort -h > twitter/ipv6_merged.txt
-          python utils/merge.py --source=linode/ipv6.txt | sort -h > linode/ipv6_merged.txt
-          python utils/merge.py --source=vkontakte/ipv6.txt | sort -h > vkontakte/ipv6_merged.txt
-          python utils/merge.py --source=yandex/ipv6.txt | sort -h > yandex/ipv6_merged.txt
-          python utils/merge.py --source=rambler/ipv6.txt | sort -h > rambler/ipv6_merged.txt
-          python utils/merge.py --source=apple-proxy/ipv6.txt | sort -h > apple-proxy/ipv6_merged.txt
-          python utils/merge.py --source=all/ipv6.txt | sort -h > all/ipv6_merged.txt
+          find . -name ipv4.txt| parallel --will-cite -j 1 echo "Merging '{}'"';'python utils/merge.py --source={} '|' sort -h '>' {.}_merged.txt
+
+      - name: Merge ipv6 Ranges
+        run: |
+          set -euo pipefail
+          set -x
+          find . -name ipv6.txt| parallel --will-cite -j 1 echo "Merging '{}'"';'python utils/merge.py --source={} '|' sort -h '>' {.}_merged.txt
 
       - name: Commit files
         env:

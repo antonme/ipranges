@@ -18,7 +18,3 @@ curl https://raw.githubusercontent.com/antonme/ipnames/master/ext-resolve-youtub
 # sort & uniq
 sort -h /tmp/youtube-ipv4.txt | uniq > youtube/ipv4.txt
 # sort -h /tmp/youtube-ipv6.txt | uniq > youtube/ipv6.txt
-
-
-#merge
-python utils/merge.py --source=youtube/ipv4.txt | sed 's/\/32$//'| sort -h > youtube/ipv4_merged.txt

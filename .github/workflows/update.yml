@@ -21,7 +21,7 @@ jobs:
         run: sudo apt install -y ipcalc
 
       - name: Install awk
-        run: sudo apt install -y awk
+        run: sudo apt install -y gawk
 
       - name: Install GNU Parallel
         run: sudo apt install -y parallel

@@ -54,14 +54,14 @@ jobs:
         run: |
           set -euo pipefail
           set -x
-          find . -name ipv4.txt| parallel --will-cite -j 1 echo "Merging '{}'"';'python utils/merge.py --source={} '|' sed '\'s/\/32$//\'' '|' sort -h '>' {.}_merged.txt
+          find . -name ipv4.txt| parallel --will-cite -j 1 echo "Merging '{}'"';'python utils/merge.py --source={} '|'  sort -h '>' {.}_merged.txt
 
 
       - name: Merge ipv6 Ranges
         run: |
           set -euo pipefail
           set -x
-          find . -name ipv6.txt| parallel --will-cite -j 1 echo "Merging '{}'"';'python utils/merge.py --source={} '|' sed '\'s/\/32$//\'' '|' sort -h '>' {.}_merged.txt
+          find . -name ipv6.txt| parallel --will-cite -j 1 echo "Merging '{}'"';'python utils/merge.py --source={} '|' sort -h '>' {.}_merged.txt
 
 
       - name: Commit files

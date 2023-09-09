@@ -9,25 +9,10 @@ jobs:
   updater:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
-      - name: Install WHOIS client
-        run: sudo apt install -y whois
-
-      - name: Install JQ
-        run: sudo apt install -y jq
-
-      - name: Install ipcalc
-        run: sudo apt install -y ipcalc
-
-      - name: Install ripgrep
-        run: sudo apt install -y ripgrep
-
-      - name: Install awk
-        run: sudo apt install -y gawk
-
-      - name: Install GNU Parallel
-        run: sudo apt install -y parallel
+      - name: Prepare packages
+        run: sudo apt install -y whois jq ipcalc ripgrep gawk parallel
 
       - name: Set up Python 3.7
         uses: actions/setup-python@v2

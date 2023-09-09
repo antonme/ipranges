@@ -10,7 +10,7 @@ get_maintained() {
     cat /tmp/ripe.txt | grep '^route' | awk '{ print $2; }'
     whois -h whois.radb.net -- "-i mnt-by $1" | grep '^route' | awk '{ print $2; }'
     whois -h rr.ntt.net -- "-i mnt-by $1" | grep '^route' | awk '{ print $2; }'
-    rg inetnum /tmp/ripe.txt |awk '{$1=""; system("ipcalc -b -r "$2" "$4"| tail +2");}'
+    rg inetnum /tmp/ripe.txt |sort -h|uniq|awk '{print $2" "$4}'|python utils/ipcalc.py
 }
 
 

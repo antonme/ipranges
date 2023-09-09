@@ -9,7 +9,7 @@ set -euo pipefail
 set -x
 
 python utils/arin-org.py AL-3 > /tmp/alibaba.txt
-whois -h whois.apnic.net "TAOBAO"| rg inetnum|awk '{$1=""; system("ipcalc -b -r "$2" "$4"| tail +2");}' >> /tmp/alibaba.txt
+whois -h whois.apnic.net "TAOBAO"| rg inetnum|sort -h|uniq|awk '{print $2" "$4}'|python utils/ipcalc.py >>/tmp/alibaba.txt
 whois -h whois.apnic.net "TAOBAO"| grep inet6num| awk '{print $2}' >> /tmp/alibaba.txt
 
 # save ipv4

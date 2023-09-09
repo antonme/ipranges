@@ -37,7 +37,7 @@ jobs:
         run: |
           set -euo pipefail
           set -x
-          find . -name downloader.sh| sort -h | awk '{print "\n\nExecuting $1...\n";system("bash "$1)}'
+          find . -name downloader.sh| sort -h | awk '{print "Executing "$1"...";system("bash "$1)}'
 
       - name: Merge ipv4 Ranges
         run: |

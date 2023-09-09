@@ -20,6 +20,9 @@ jobs:
       - name: Install ipcalc
         run: sudo apt install -y ipcalc
 
+      - name: Install ripgrep
+        run: sudo apt install -y ripgrep
+
       - name: Install awk
         run: sudo apt install -y gawk
 
@@ -49,7 +52,7 @@ jobs:
         run: |
           set -euo pipefail
           set -x
-          find . -name downloader.sh| sort -h | awk '{print "\nExecuting "$1"\n";system("bash "$1)}'
+          find . -name downloader.sh| sort -h | awk '{print "\n\nExecuting $1...\n";system("bash "$1)}'
 
       - name: Merge ipv4 Ranges
         run: |

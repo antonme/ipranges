@@ -1,9 +1,8 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 
 set -euo pipefail
 set -x
-
 
 # get from Autonomous System
 get_routes() {

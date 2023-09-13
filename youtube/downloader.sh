@@ -7,8 +7,8 @@ set -x
 
 
 # save ipv4
-grep -v ':' youtube/nets.txt > /tmp/youtube-ipv4.txt
-curl https://raw.githubusercontent.com/antonme/ipnames/master/resolve-youtube.txt >> /tmp/youtube-ipv4.txt || echo 'failed'
+#grep -v ':' youtube/nets.txt > /tmp/youtube-ipv4.txt
+curl https://raw.githubusercontent.com/antonme/ipnames/master/resolve-youtube.txt > /tmp/youtube-ipv4.txt || echo 'failed'
 curl https://raw.githubusercontent.com/antonme/ipnames/master/ext-resolve-youtube.txt >> /tmp/youtube-ipv4.txt || echo 'failed'
 
 # save ipv6

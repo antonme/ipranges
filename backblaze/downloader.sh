@@ -23,11 +23,16 @@ get_routes 'AS40401' > /tmp/backblaze.txt || echo 'failed'
 python utils/arin-org.py AS40401 >> /tmp/backblaze.txt
 
 
+
+
 # save ipv4
 grep -v ':' /tmp/backblaze.txt > /tmp/backblaze-ipv4.txt
 
 # save ipv6
 grep ':' /tmp/backblaze.txt > /tmp/backblaze-ipv6.txt
+
+curl https://raw.githubusercontent.com/antonme/ipnames/master/resolve-backblaze.txt >> /tmp/backblaze.txt || echo 'failed'
+curl https://raw.githubusercontent.com/antonme/ipnames/master/ext-resolve-backblaze.txt >> /tmp/backblaze.txt || echo 'failed'
 
 
 # sort & uniq

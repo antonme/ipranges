@@ -26,7 +26,7 @@ get_routes() {
 }
 
 
-get_maintained 'DATACAMP-MNT' > /tmp/vpnhosts.txt || echo 'failed'
+get_maintained 'DATACAMP-MNT' | rg '\.' > /tmp/vpnhosts.txt || echo 'failed'
 get_maintained 'GLOBALAXS-MNT' >> /tmp/vpnhosts.txt || echo 'failed'
 get_maintained 'CLOUVIDER-MNT' >> /tmp/vpnhosts.txt || echo 'failed'
 get_maintained 'HYDRA-MNT' >> /tmp/vpnhosts.txt || echo 'failed'

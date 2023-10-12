@@ -26,7 +26,7 @@ get_routes() {
 }
 
 
-get_maintained 'DATACAMP-MNT' | rg '\.' > /tmp/vpnhosts.txt || echo 'failed'
+get_maintained 'DATACAMP-MNT' > /tmp/vpnhosts.txt || echo 'failed'
 get_maintained 'GLOBALAXS-MNT' >> /tmp/vpnhosts.txt || echo 'failed'
 get_maintained 'CLOUVIDER-MNT' >> /tmp/vpnhosts.txt || echo 'failed'
 get_maintained 'HYDRA-MNT' >> /tmp/vpnhosts.txt || echo 'failed'
@@ -54,7 +54,7 @@ get_routes 'AS64286' >> /tmp/vpnhosts.txt || echo 'failed'
 get_routes 'AS206092' >> /tmp/vpnhosts.txt || echo 'failed'
 
 # save ipv4
-grep -v ':' /tmp/vpnhosts.txt > /tmp/vpnhosts-ipv4.txt
+grep -v ':' /tmp/vpnhosts.txt|rg '\.' > /tmp/vpnhosts-ipv4.txt
 
 # save ipv6
 grep ':' /tmp/vpnhosts.txt > /tmp/vpnhosts-ipv6.txt

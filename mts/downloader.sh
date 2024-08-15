@@ -27,6 +27,9 @@ get_maintained 'MGTS-USPD-MNT' >> /tmp/mts.txt || echo 'failed'
 # save ipv4
 grep -v ':' /tmp/mts.txt > /tmp/mts-ipv4.txt
 
+# save ipv6
+grep ':' /tmp/mts.txt > /tmp/mts-ipv6.txt
 
 # sort & uniq
 sort -h /tmp/mts-ipv4.txt | uniq > mts/ipv4.txt
+sort -h /tmp/mts-ipv6.txt | uniq > mts/ipv6.txt

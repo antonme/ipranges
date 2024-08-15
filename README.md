@@ -34,7 +34,7 @@ Each service folder contains:
 - `downloader.sh`: Script for fetching IP ranges from public sources
 - `ipv4.txt`/`ipv6.txt`: the list of addresses (IPv4 or IPv6), which is the result of parsing one or more sources
 - `ipv4_merged.txt`/`ipv6_merged.txt`: optimized lists combined into the smallest possible CIDRs
-- 
+ 
 ### Utility Scripts
 
 The `utils/` folder houses Python scripts for merging and cleaning IP lists.

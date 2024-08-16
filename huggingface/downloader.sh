@@ -19,11 +19,11 @@ curl https://raw.githubusercontent.com/antonme/ipnames/master/ext-resolve-huggin
 
 
 # save ipv4
-grep -v ':' /tmp/huggingface.txt > /tmp/huggingface-ipv4.txt
+grep -v ':' /tmp/huggingface.txt > /tmp/huggingface-ipv4.txt || echo 'failed'
 
 # save ipv6
-grep ':' /tmp/huggingface.txt > /tmp/huggingface-ipv6.txt
+grep ':' /tmp/huggingface.txt > /tmp/huggingface-ipv6.txt || echo 'failed'
 
 # sort & uniq
-sort -h /tmp/huggingface-ipv4.txt | uniq > huggingface/ipv4.txt
-sort -h /tmp/huggingface-ipv6.txt | uniq > huggingface/ipv6.txt
+sort -h /tmp/huggingface-ipv4.txt | uniq > huggingface/ipv4.txt || echo 'failed'
+sort -h /tmp/huggingface-ipv6.txt | uniq > huggingface/ipv6.txt || echo 'failed'

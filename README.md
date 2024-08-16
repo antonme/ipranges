@@ -42,7 +42,7 @@ The `utils/` folder houses Python scripts for merging and cleaning IP lists.
 ### Automated Updates
 Daily updates are managed via GitHub Actions, as defined in `.github/workflows/update.yaml`.
 
-## Sister projects
+## Sister repos
 Here's list of another data I use for my router configs:
   * [ipnames](https://github.com/antonme/ipnames): daily updated list of FQDNs and resolved IPs of some popular sites/platforms. Made for routing of some VPNs in my router
   * [geoip](https://github.com/antonme/geoip): lists of CIDR's by regions for routing VPNs in my router

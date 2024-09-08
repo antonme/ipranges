@@ -26,10 +26,10 @@ curl https://raw.githubusercontent.com/antonme/ipnames/master/resolve-facebook.t
 curl https://raw.githubusercontent.com/antonme/ipnames/master/ext-resolve-facebook.txt >> /tmp/facebook.txt || echo 'failed'
 
 # save ipv4
-grep -v ':' /tmp/facebook.txt > /tmp/facebook-ipv4.txt
+grep -v ':' /tmp/facebook.txt | rg '[0-9]+' > /tmp/facebook-ipv4.txt
 
 # save ipv6
-grep ':' /tmp/facebook.txt > /tmp/facebook-ipv6.txt
+grep ':' /tmp/facebook.txt |rg '[0-9]+' > /tmp/facebook-ipv6.txt
 
 
 # sort & uniq

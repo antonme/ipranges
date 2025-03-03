@@ -13,7 +13,7 @@ Bing (Microsoft), Google, Yahoo, Yandex, Facebook, LinkedIn, TikTok, Twitter (X.
 Alibaba, Amazon, Avito, Ozon.ru, Adobe, Apple, Microsoft, Sberbank, Hugging Face, GitHub
 
 ### Internet Service Providers, VPNs, and Regional Services
-ExpressVPN, NordVPN, ProtonVPN, Surfshark, Popular VPN services servers, Apple's iCloud Private Relay, Beeline, Corbina, M247, MTS, Rostelecom, Russian Government sites
+ExpressVPN, NordVPN, ProtonVPN, Surfshark, PIA, Mullvad, Popular VPN services servers' providers, Apple's iCloud Private Relay, Beeline, Corbina, M247, MTS, Rostelecom, Russian Government sites
 
 ## Repository Structure
 	.

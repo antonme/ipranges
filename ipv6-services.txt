@@ -1,9 +1,11 @@
+adobe/ipv6_merged.txt
 akamai/ipv6_merged.txt
 alibaba/ipv6_merged.txt
 amazon/ipv6_merged.txt
 apple-proxy/ipv6_merged.txt
 avito/ipv6_merged.txt
 azure/ipv6_merged.txt
+backblaze/ipv6_merged.txt
 cachefly/ipv6_merged.txt
 cloudflare/ipv6_merged.txt
 digitalocean/ipv6_merged.txt
@@ -23,6 +25,7 @@ microsoft/ipv6_merged.txt
 mts/ipv6_merged.txt
 mullvad/ipv6_merged.txt
 nordvpn/ipv6_merged.txt
+ovh/ipv6_merged.txt
 ozonru/ipv6_merged.txt
 protonvpn/ipv6_merged.txt
 qrator/ipv6_merged.txt

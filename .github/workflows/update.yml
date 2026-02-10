@@ -53,6 +53,13 @@ jobs:
           find . -name ipv6.txt| sort -h | parallel --will-cite -j 1 echo "Merging '{}'"';'python utils/merge.py --source={} '|' sort -h '>' {.}_merged.txt
 
 
+      - name: Update service lists
+        run: |
+          set -euo pipefail
+          set -x
+          find . -name ipv4_merged.txt -not -empty | sed 's|^\./||' | sort -h > ipv4-services.txt
+          find . -name ipv6_merged.txt -not -empty | sed 's|^\./||' | sort -h > ipv6-services.txt
+
       - name: Commit files
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

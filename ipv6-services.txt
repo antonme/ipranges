@@ -1,13 +1,9 @@
-M247/ipv6_merged.txt
-adobe/ipv6_merged.txt
 akamai/ipv6_merged.txt
 alibaba/ipv6_merged.txt
 amazon/ipv6_merged.txt
 apple-proxy/ipv6_merged.txt
-apple/ipv6_merged.txt
 avito/ipv6_merged.txt
 azure/ipv6_merged.txt
-backblaze/ipv6_merged.txt
 cachefly/ipv6_merged.txt
 cloudflare/ipv6_merged.txt
 digitalocean/ipv6_merged.txt
@@ -19,12 +15,13 @@ github/ipv6_merged.txt
 google/ipv6_merged.txt
 googlecloud/ipv6_merged.txt
 hetzner/ipv6_merged.txt
-huggingface/ipv6_merged.txt
 imperva/ipv6_merged.txt
 kinopub/ipv6_merged.txt
 linode/ipv6_merged.txt
+M247/ipv6_merged.txt
 microsoft/ipv6_merged.txt
 mts/ipv6_merged.txt
+mullvad/ipv6_merged.txt
 nordvpn/ipv6_merged.txt
 ozonru/ipv6_merged.txt
 protonvpn/ipv6_merged.txt
@@ -34,6 +31,7 @@ rostelecom/ipv6_merged.txt
 rugov/ipv6_merged.txt
 sber/ipv6_merged.txt
 surfshark/ipv6_merged.txt
+telegram/ipv6_merged.txt
 tiktok/ipv6_merged.txt
 twitter/ipv6_merged.txt
 vkontakte/ipv6_merged.txt

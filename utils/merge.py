@@ -8,5 +8,15 @@ if __name__ == '__main__':
     parser.add_argument('--source', nargs='?', type=argparse.FileType('r'), required=True, help='Source file path')
     args = parser.parse_args()
 
-    for addr in netaddr.cidr_merge(args.source.readlines()):
+    lines = []
+    for line in args.source:
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            lines.append(netaddr.IPNetwork(line))
+        except (netaddr.AddrFormatError, ValueError):
+            pass
+
+    for addr in netaddr.cidr_merge(lines):
         print(addr)

@@ -20,8 +20,8 @@ get_routes 'ADOBES-Z' >> /tmp/adobe.txt || echo 'failed'
 python utils/arin-org.py AS15224 >> /tmp/adobe.txt
 
 
-curl https://raw.githubusercontent.com/antonme/ipnames/master/resolve-adobe.txt >> /tmp/adobe.txt || echo 'failed'
-curl https://raw.githubusercontent.com/antonme/ipnames/master/ext-resolve-adobe.txt >> /tmp/adobe.txt || echo 'failed'
+curl -f https://raw.githubusercontent.com/antonme/ipnames/master/resolve-adobe.txt >> /tmp/adobe.txt || echo 'failed'
+curl -f https://raw.githubusercontent.com/antonme/ipnames/master/ext-resolve-adobe.txt >> /tmp/adobe.txt || echo 'failed'
 
 
 # save ipv4

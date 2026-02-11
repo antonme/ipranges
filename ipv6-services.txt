@@ -1,3 +1,4 @@
+M247/ipv6_merged.txt
 adobe/ipv6_merged.txt
 akamai/ipv6_merged.txt
 alibaba/ipv6_merged.txt
@@ -20,7 +21,6 @@ hetzner/ipv6_merged.txt
 imperva/ipv6_merged.txt
 kinopub/ipv6_merged.txt
 linode/ipv6_merged.txt
-M247/ipv6_merged.txt
 microsoft/ipv6_merged.txt
 mts/ipv6_merged.txt
 mullvad/ipv6_merged.txt

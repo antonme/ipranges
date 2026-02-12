@@ -63,6 +63,8 @@ get_routes 'AS39351' >> /tmp/vpnhosts.txt || echo 'failed'
 cat vpnhosts-knownips.txt >> /tmp/vpnhosts.txt || echo 'failed'
 
 curl https://raw.githubusercontent.com/antonme/ipnames/master/ext-resolve-vpnhosts.txt >> /tmp/vpnhosts.txt || echo 'failed'
+curl https://raw.githubusercontent.com/antonme/ipnames/master/ext-resolve-vpnhosts.txt https://raw.githubusercontent.com/antonme/ipnames/master/ext-resolve-vpnhosts.txt -s|cut -d'.' -f1,2,3|sort -u|awk '{print $0".0/24"}' >>/tmp/vpnhosts.txt
+
 
 # save ipv4
 grep -v ':' /tmp/vpnhosts.txt|rg '\.' > /tmp/vpnhosts-ipv4.txt

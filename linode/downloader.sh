@@ -8,7 +8,7 @@ set -x
 
 
 # get from public ranges
-curl -s https://geoip.linode.com/ | grep -v '^#' | cut -d, -f1  > /tmp/linode.txt
+curl -fsS --retry 3 --retry-delay 5 --retry-all-errors https://geoip.linode.com/ | grep -v '^#' | cut -d, -f1  > /tmp/linode.txt
 
 # save ipv4
 grep -v ':' /tmp/linode.txt > /tmp/linode-ipv4.txt

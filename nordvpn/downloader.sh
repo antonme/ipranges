@@ -20,7 +20,7 @@ get_routes() {
 
 get_routes 'AS136787' > /tmp/nordvpn.txt || echo 'failed'
 
-curl --silent "https://api.nordvpn.com/v1/servers?limit=16383"| jq .[].ips[].ip.ip|tr -d '"'| sort -h|uniq >>/tmp/nordvpn.txt
+curl -fsS --retry 3 --retry-delay 5 --retry-all-errors "https://api.nordvpn.com/v1/servers?limit=16383"| jq .[].ips[].ip.ip|tr -d '"'| sort -h|uniq >>/tmp/nordvpn.txt
 
 
 # save ipv4

@@ -14,8 +14,8 @@ get_routes() {
     whois -h whois.bgp.net.br -- "-i origin $1" | rg '^route' | awk '{ print $2; }'
 }
 
-curl https://raw.githubusercontent.com/antonme/ipnames/master/resolve-huggingface.txt > /tmp/huggingface.txt || echo 'failed'
-curl https://raw.githubusercontent.com/antonme/ipnames/master/ext-resolve-huggingface.txt >> /tmp/huggingface.txt || echo 'failed'
+curl -fsS --retry 3 --retry-delay 5 --retry-all-errors https://raw.githubusercontent.com/antonme/ipnames/master/resolve-huggingface.txt > /tmp/huggingface.txt || echo 'failed'
+curl -fsS --retry 3 --retry-delay 5 --retry-all-errors https://raw.githubusercontent.com/antonme/ipnames/master/ext-resolve-huggingface.txt >> /tmp/huggingface.txt || echo 'failed'
 
 
 # save ipv4

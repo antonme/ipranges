@@ -12,7 +12,7 @@ set -x
 
 
 # get from public ranges
-curl -s https://www.gstatic.com/ipranges/cloud.json > /tmp/cloud.json
+curl -fsS --retry 3 --retry-delay 5 --retry-all-errors https://www.gstatic.com/ipranges/cloud.json > /tmp/cloud.json
 
 # get from netblocks
 txt="$(dig TXT _netblocks.google.com +short @8.8.8.8)"

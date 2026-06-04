@@ -10,7 +10,7 @@ set -x
 
 
 
-curl --silent https://raw.githubusercontent.com/Lars-/PIA-servers/refs/heads/master/export.csv| grep "\."|awk -F','  '{print $1}'| sort -h|uniq >/tmp/pia.txt
+curl -fsS --retry 3 --retry-delay 5 --retry-all-errors https://raw.githubusercontent.com/Lars-/PIA-servers/refs/heads/master/export.csv| grep "\."|awk -F','  '{print $1}'| sort -h|uniq >/tmp/pia.txt
 
 
 # save ipv4

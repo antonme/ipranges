@@ -23,8 +23,8 @@ get_routes 'AS40401' > /tmp/backblaze.txt || echo 'failed'
 python utils/arin-org.py AS40401 >> /tmp/backblaze.txt
 
 
-curl -f https://raw.githubusercontent.com/antonme/ipnames/master/resolve-backblaze.txt >> /tmp/backblaze.txt || echo 'failed'
-curl -f https://raw.githubusercontent.com/antonme/ipnames/master/ext-resolve-backblaze.txt >> /tmp/backblaze.txt || echo 'failed'
+curl -fsS --retry 3 --retry-delay 5 --retry-all-errors https://raw.githubusercontent.com/antonme/ipnames/master/resolve-backblaze.txt >> /tmp/backblaze.txt || echo 'failed'
+curl -fsS --retry 3 --retry-delay 5 --retry-all-errors https://raw.githubusercontent.com/antonme/ipnames/master/ext-resolve-backblaze.txt >> /tmp/backblaze.txt || echo 'failed'
 
 
 # save ipv4

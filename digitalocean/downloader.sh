@@ -8,7 +8,7 @@ set -x
 
 
 # get from public ranges
-curl -s https://www.digitalocean.com/geo/google.csv | cut -d, -f1  > /tmp/digitalocean.txt
+curl -fsS --retry 3 --retry-delay 5 --retry-all-errors https://www.digitalocean.com/geo/google.csv | cut -d, -f1  > /tmp/digitalocean.txt
 
 # save ipv4
 grep -v ':' /tmp/digitalocean.txt > /tmp/digitalocean-ipv4.txt

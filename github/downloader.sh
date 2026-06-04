@@ -7,7 +7,7 @@ set -x
 
 
 # get from public ranges
-curl -s https://api.github.com/meta > /tmp/github.json
+curl -fsS --retry 3 --retry-delay 5 --retry-all-errors https://api.github.com/meta > /tmp/github.json
 
 
 # get all prefixes without some keys

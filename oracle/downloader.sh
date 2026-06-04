@@ -8,7 +8,7 @@ set -x
 
 
 # get from public ranges
-curl -s https://docs.oracle.com/en-us/iaas/tools/public_ip_ranges.json > /tmp/oracle.json
+curl -fsS --retry 3 --retry-delay 5 --retry-all-errors https://docs.oracle.com/en-us/iaas/tools/public_ip_ranges.json > /tmp/oracle.json
 
 
 # save ipv4

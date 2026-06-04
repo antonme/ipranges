@@ -62,8 +62,8 @@ get_routes 'AS39351' >> /tmp/vpnhosts.txt || echo 'failed'
 # known ips from https://github.com/Zomboided/service.vpn.manager.providers
 cat vpnhosts-knownips.txt >> /tmp/vpnhosts.txt || echo 'failed'
 
-curl https://raw.githubusercontent.com/antonme/ipnames/master/ext-resolve-vpnhosts.txt >> /tmp/vpnhosts.txt || echo 'failed'
-curl https://raw.githubusercontent.com/antonme/ipnames/master/ext-resolve-vpnhosts.txt https://raw.githubusercontent.com/antonme/ipnames/master/ext-resolve-vpnhosts.txt -s|cut -d'.' -f1,2,3|sort -u|awk '{print $0".0/24"}' >>/tmp/vpnhosts.txt
+curl -fsS --retry 3 --retry-delay 5 --retry-all-errors https://raw.githubusercontent.com/antonme/ipnames/master/ext-resolve-vpnhosts.txt >> /tmp/vpnhosts.txt || echo 'failed'
+curl -fsS --retry 3 --retry-delay 5 --retry-all-errors https://raw.githubusercontent.com/antonme/ipnames/master/ext-resolve-vpnhosts.txt https://raw.githubusercontent.com/antonme/ipnames/master/ext-resolve-vpnhosts.txt -s|cut -d'.' -f1,2,3|sort -u|awk '{print $0".0/24"}' >>/tmp/vpnhosts.txt
 
 
 # save ipv4

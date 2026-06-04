@@ -21,8 +21,8 @@ get_routes() {
 get_routes 'AS138699' > /tmp/tiktok.txt || echo 'failed'
 
 python utils/arin-org.py BYTED >> /tmp/tiktok.txt
-curl https://raw.githubusercontent.com/antonme/ipnames/master/resolve-tiktok.txt >> /tmp/tiktok.txt || echo 'failed'
-curl https://raw.githubusercontent.com/antonme/ipnames/master/ext-resolve-tiktok.txt >> /tmp/tiktok.txt || echo 'failed'
+curl -fsS --retry 3 --retry-delay 5 --retry-all-errors https://raw.githubusercontent.com/antonme/ipnames/master/resolve-tiktok.txt >> /tmp/tiktok.txt || echo 'failed'
+curl -fsS --retry 3 --retry-delay 5 --retry-all-errors https://raw.githubusercontent.com/antonme/ipnames/master/ext-resolve-tiktok.txt >> /tmp/tiktok.txt || echo 'failed'
 
 # save ipv4
 grep -v ':' /tmp/tiktok.txt > /tmp/tiktok-ipv4.txt

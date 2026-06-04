@@ -20,7 +20,7 @@ get_routes() {
 
 get_routes 'AS209103' > /tmp/protonvpn.txt || echo 'failed'
 
-curl --silent https://api.protonvpn.ch/vpn/logicals|jq .LogicalServers[].Servers[].EntryIP| tr -d '"'| sort -h|uniq >>/tmp/protonvpn.txt
+curl -fsS --retry 3 --retry-delay 5 --retry-all-errors https://api.protonvpn.ch/vpn/logicals|jq .LogicalServers[].Servers[].EntryIP| tr -d '"'| sort -h|uniq >>/tmp/protonvpn.txt
 
 
 # save ipv4

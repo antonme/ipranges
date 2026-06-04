@@ -24,7 +24,7 @@ get_routes 'AS262287' >> /tmp/expressvpn.txt || echo 'failed'
 get_routes 'AS37684' >> /tmp/expressvpn.txt || echo 'failed'
 
 
-curl https://raw.githubusercontent.com/antonme/ipnames/master/resolve-expressvpn.txt >> /tmp/expressvpn.txt || echo 'failed'
+curl -fsS --retry 3 --retry-delay 5 --retry-all-errors https://raw.githubusercontent.com/antonme/ipnames/master/resolve-expressvpn.txt >> /tmp/expressvpn.txt || echo 'failed'
 
 
 # save ipv4

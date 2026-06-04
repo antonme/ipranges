@@ -7,7 +7,7 @@ set -x
 
 
 # get from public ranges
-curl -s https://ip-ranges.amazonaws.com/ip-ranges.json > /tmp/amazon.json
+curl -fsS --retry 3 --retry-delay 5 --retry-all-errors https://ip-ranges.amazonaws.com/ip-ranges.json > /tmp/amazon.json
 
 
 # save ipv4

@@ -3,7 +3,7 @@ set -euo pipefail
 set -x
 
 
-curl -s https://mask-api.icloud.com/egress-ip-ranges.csv | cut -d',' -f1  > /tmp/apple-proxy.txt
+curl -fsS --retry 3 --retry-delay 5 --retry-all-errors https://mask-api.icloud.com/egress-ip-ranges.csv | cut -d',' -f1  > /tmp/apple-proxy.txt
 
 cat /tmp/apple-proxy.txt | grep -v ":" > /tmp/apple-proxy-ipv4.txt
 cat /tmp/apple-proxy.txt | grep ":" > /tmp/apple-proxy-ipv6.txt

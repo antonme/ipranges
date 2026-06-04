@@ -18,7 +18,7 @@ get_routes() {
 get_routes 'AS209854' > /tmp/surfshark.txt || echo 'failed'
 
 
-curl https://raw.githubusercontent.com/antonme/ipnames/master/resolve-surfshark.txt >> /tmp/surfshark.txt || echo 'failed'
+curl -fsS --retry 3 --retry-delay 5 --retry-all-errors https://raw.githubusercontent.com/antonme/ipnames/master/resolve-surfshark.txt >> /tmp/surfshark.txt || echo 'failed'
 
 
 # save ipv4

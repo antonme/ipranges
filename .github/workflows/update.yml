@@ -35,9 +35,38 @@ jobs:
 
       - name: Download IPs
         run: |
-          set -euo pipefail
-          set -x
-          find . -name downloader.sh| sort -h | awk '{print "Executing "$1"...";system("bash "$1)}'
+          # Run every downloader, capturing exit codes. A single failing source must
+          # NOT abort the run (so we drop `set -e`); failures are tallied and reported.
+          set -uo pipefail
+          total=0
+          failed=0
+          : > /tmp/dl_failed_list
+          while IFS= read -r d; do
+            total=$((total + 1))
+            echo "::group::$d"
+            if bash "$d"; then
+              echo "OK: $d"
+            else
+              rc=$?
+              failed=$((failed + 1))
+              echo "FAILED (exit $rc): $d"
+              echo "$d" >> /tmp/dl_failed_list
+            fi
+            echo "::endgroup::"
+          done < <(find . -name downloader.sh | sort -h)
+          echo "$total"  > /tmp/dl_total
+          echo "$failed" > /tmp/dl_failed
+          {
+            echo "## Download results"
+            echo ""
+            echo "- Downloaders run: **$total**"
+            echo "- Failed: **$failed**"
+            if [ "$failed" -gt 0 ]; then
+              echo ""
+              echo "### ❌ Failed downloaders"
+              while IFS= read -r f; do echo "- \`$f\`"; done < /tmp/dl_failed_list
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Merge ipv4 Ranges
         run: |
@@ -52,6 +81,42 @@ jobs:
           set -x
           find . -name ipv6.txt| sort -h | parallel --will-cite -j 1 echo "Merging '{}'"';'python utils/merge.py --source={} '|' sort -h '>' {.}_merged.txt
 
+
+      - name: Sanity floor
+        run: |
+          # Protect against a broken upstream wiping a good list: revert any merged
+          # list (and its raw .txt) that collapsed to empty or lost >66% of its lines
+          # vs the last commit. Brand-new files (not yet committed) are left alone.
+          set -uo pipefail
+          reverts=0
+          : > /tmp/reverted_list
+          while IFS= read -r merged; do
+            path="${merged#./}"
+            git cat-file -e "HEAD:$path" 2>/dev/null || continue
+            old=$(git show "HEAD:$path" | wc -l | tr -d ' ')
+            new=$(wc -l < "$path" | tr -d ' ')
+            if [ "$old" -gt 0 ] && { [ "$new" -eq 0 ] || [ $((new * 3)) -lt "$old" ]; }; then
+              raw="${path/_merged/}"
+              echo "REVERT: $path ($old -> $new lines), restoring $raw too"
+              git checkout HEAD -- "$path"
+              git cat-file -e "HEAD:$raw" 2>/dev/null && git checkout HEAD -- "$raw" || true
+              reverts=$((reverts + 1))
+              echo "| \`$path\` | $old | $new |" >> /tmp/reverted_list
+            fi
+          done < <(find . -name '*_merged.txt' | sort -h)
+          echo "$reverts" > /tmp/reverts
+          {
+            echo ""
+            if [ "$reverts" -gt 0 ]; then
+              echo "### ⚠️ Reverted lists (empty or >66% drop)"
+              echo ""
+              echo "| file | previous | new |"
+              echo "|------|---------:|----:|"
+              cat /tmp/reverted_list
+            else
+              echo "Sanity floor: no lists reverted ✅"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Update service lists
         run: |
@@ -83,3 +148,24 @@ jobs:
 
           # push changes
           git push github HEAD:${GITHUB_REF}
+
+      - name: Fail on systemic outage
+        if: always()
+        run: |
+          # Good data is already committed above. Only now do we decide whether to
+          # alert: turn the job red (-> email) if >=50% of downloaders failed, which
+          # signals a network/runner problem rather than a single flaky source.
+          set -uo pipefail
+          total=$(cat /tmp/dl_total 2>/dev/null || echo 0)
+          failed=$(cat /tmp/dl_failed 2>/dev/null || echo 0)
+          reverts=$(cat /tmp/reverts 2>/dev/null || echo 0)
+          echo "Summary: $failed/$total downloaders failed, $reverts list(s) reverted."
+          if [ "$total" -gt 0 ] && [ $((failed * 2)) -ge "$total" ]; then
+            echo "::error::Systemic outage: $failed/$total downloaders failed (>=50%)."
+            {
+              echo ""
+              echo "## ❌ Systemic outage: $failed/$total downloaders failed (≥50%)"
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+          echo "No systemic outage — job stays green."

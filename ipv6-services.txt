@@ -9,6 +9,7 @@ azure/ipv6_merged.txt
 backblaze/ipv6_merged.txt
 cachefly/ipv6_merged.txt
 cloudflare/ipv6_merged.txt
+constant/ipv6_merged.txt
 digitalocean/ipv6_merged.txt
 edgecast/ipv6_merged.txt
 expressvpn/ipv6_merged.txt

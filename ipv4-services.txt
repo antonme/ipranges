@@ -12,6 +12,7 @@ beeline/ipv4_merged.txt
 bing/ipv4_merged.txt
 cachefly/ipv4_merged.txt
 cloudflare/ipv4_merged.txt
+constant/ipv4_merged.txt
 corbina/ipv4_merged.txt
 digitalocean/ipv4_merged.txt
 edgecast/ipv4_merged.txt

@@ -16,7 +16,7 @@ get_routes() {
 
 
 #python utils/arin-org.py ZEITI >> /tmp/constant.txt
-curl -fsS --retry 3 --retry-delay 5 --retry-all-errors https://geofeed.constant.com/ > /tmp/constant.txt
+curl -fsS --retry 3 --retry-delay 5 --retry-all-errors https://geofeed.constant.com/ | cut -d',' -f1 > /tmp/constant.txt
 
 # save ipv4
 grep -v ':' /tmp/constant.txt > /tmp/constant-ipv4.txt

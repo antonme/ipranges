@@ -4,13 +4,15 @@
 set -euo pipefail
 set -x
 
-# get from Autonomous System
+# get from Autonomous System. Each IRR is queried independently with `|| true` so a
+# server that is down — or simply has no route object for the ASN — neither aborts the
+# function (under `set -e`/`pipefail`) nor hides the other registries.
 get_routes() {
-    whois -h riswhois.ripe.net -- "-i origin $1" | rg '^route' | awk '{ print $2; }'
-    whois -h whois.radb.net -- "-i origin $1" | rg '^route' | awk '{ print $2; }'
-    whois -h rr.ntt.net -- "-i origin $1" | rg '^route' | awk '{ print $2; }'
-    whois -h whois.rogerstelecom.net -- "-i origin $1" | rg '^route' | awk '{ print $2; }'
-    whois -h whois.bgp.net.br -- "-i origin $1" | rg '^route' | awk '{ print $2; }'
+    whois -h riswhois.ripe.net -- "-i origin $1" | rg '^route' | awk '{ print $2; }' || true
+    whois -h whois.radb.net -- "-i origin $1" | rg '^route' | awk '{ print $2; }' || true
+    whois -h rr.ntt.net -- "-i origin $1" | rg '^route' | awk '{ print $2; }' || true
+    whois -h whois.rogerstelecom.net -- "-i origin $1" | rg '^route' | awk '{ print $2; }' || true
+    whois -h whois.bgp.net.br -- "-i origin $1" | rg '^route' | awk '{ print $2; }' || true
 }
 
 python utils/arin-org.py AKAMAI > /tmp/akamai.txt
@@ -33,6 +35,12 @@ get_routes 'AS35993' >> /tmp/akamai.txt || echo 'failed'
 get_routes 'AS35994' >> /tmp/akamai.txt || echo 'failed'
 get_routes 'AS36183' >> /tmp/akamai.txt || echo 'failed'
 get_routes 'AS393560' >> /tmp/akamai.txt || echo 'failed'
+# additional Akamai-owned ASNs (incl. APNIC/RIPE-side and the Prolexic/Asavie blocks)
+get_routes 'AS24319' >> /tmp/akamai.txt || echo 'failed'
+get_routes 'AS34164' >> /tmp/akamai.txt || echo 'failed'
+get_routes 'AS21342' >> /tmp/akamai.txt || echo 'failed'
+get_routes 'AS200005' >> /tmp/akamai.txt || echo 'failed'
+get_routes 'AS32787' >> /tmp/akamai.txt || echo 'failed'
 
 # save ipv4
 grep -v ':' /tmp/akamai.txt > /tmp/akamai-ipv4.txt

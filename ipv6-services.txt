@@ -4,11 +4,14 @@ akamai/ipv6_merged.txt
 alibaba/ipv6_merged.txt
 amazon/ipv6_merged.txt
 apple-proxy/ipv6_merged.txt
+apple/ipv6_merged.txt
 avito/ipv6_merged.txt
 azure/ipv6_merged.txt
 backblaze/ipv6_merged.txt
+beeline/ipv6_merged.txt
 cachefly/ipv6_merged.txt
 cloudflare/ipv6_merged.txt
+cogent/ipv6_merged.txt
 constant/ipv6_merged.txt
 digitalocean/ipv6_merged.txt
 edgecast/ipv6_merged.txt
@@ -22,6 +25,7 @@ hetzner/ipv6_merged.txt
 hostinger/ipv6_merged.txt
 imperva/ipv6_merged.txt
 kinopub/ipv6_merged.txt
+linkedin/ipv6_merged.txt
 linode/ipv6_merged.txt
 microsoft/ipv6_merged.txt
 mts/ipv6_merged.txt

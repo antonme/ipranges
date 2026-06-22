@@ -1,0 +1,13 @@
+route:          193.254.30.0/24
+descr:          AirPlus International GmbH
+origin:         AS12726
+mnt-by:         AS12312-MNT
+mnt-by:         DE-COLT-MNT
+mnt-by:         COLT-UK
+created:        2002-05-21T15:33:55Z
+last-modified:  2025-07-22T12:20:27Z
+source:         RIPE
+remarks:        ****************************
+remarks:        * THIS OBJECT IS MODIFIED
+remarks:        * Please note that all data that is generally regarded as personal
+remarks:        * data has been removed from this object.

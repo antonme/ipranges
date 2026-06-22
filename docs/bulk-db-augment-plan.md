@@ -500,6 +500,72 @@ git add docs/research/2026-06-22-bgp-datasets.md
 git commit -m "docs: evaluate ready-made BGP origin datasets"
 ```
 
+## Task 2C: Go vs Rust Toolchain Spike
+
+**Files:**
+- Create: `docs/research/2026-06-22-go-vs-rust.md`
+
+**Interfaces:**
+- Produces: language recommendation for `irrindex` before implementation starts
+
+- [ ] **Step 1: Define project-specific criteria**
+
+Evaluate Go and Rust against these criteria:
+
+- CI setup cost on GitHub Actions.
+- Static binary distribution.
+- Streaming gzip/HTTP parsing ergonomics.
+- SQLite support and migration ergonomics.
+- RPSL parsing ecosystem.
+- BGP/MRT ecosystem, including BGPKIT Parser.
+- Developer velocity for this repo.
+- Memory safety and parser correctness risk.
+- Ease of producing a small `whois-shim` CLI.
+- Long-term maintenance by the user.
+
+- [ ] **Step 2: Research available libraries**
+
+For Go, check:
+
+- SQLite driver options.
+- gzip/HTTP streaming in the standard library.
+- available RPSL parser packages such as `rpsl-go`.
+- BGP/MRT parser maturity.
+
+For Rust, check:
+
+- SQLite driver options.
+- gzip/HTTP streaming crates.
+- available RPSL parser crates.
+- BGPKIT Parser integration and CLI reuse.
+
+- [ ] **Step 3: Run no-install local capability check**
+
+Without installing packages unless the user explicitly approves, record:
+
+```bash
+go version
+rustc --version
+cargo --version
+command -v bgpkit-parser || true
+command -v bgpreader || true
+```
+
+- [ ] **Step 4: Decide**
+
+Choose one:
+
+- Implement the main tool in Go and treat BGPKIT/BGPStream as optional external tools.
+- Implement the main tool in Rust to reuse BGPKIT Parser more directly.
+- Split the project: Go/SQLite for IRR/RPSL and external Rust/BGPKIT only for deferred MRT parsing.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add docs/research/2026-06-22-go-vs-rust.md docs/bulk-db-augment-plan.md
+git commit -m "docs: add Go vs Rust toolchain research task"
+```
+
 ## Task 3: RISWhois Parser
 
 **Files:**

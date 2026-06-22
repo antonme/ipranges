@@ -1,6 +1,7 @@
 package query
 
 import (
+	"errors"
 	"path/filepath"
 	"reflect"
 	"testing"
@@ -91,6 +92,32 @@ func TestQueriesFilterBySource(t *testing.T) {
 	want := []string{"23.64.0.0/14"}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("ByOrigin with source filter = %#v, want %#v", got, want)
+	}
+}
+
+func TestQueriesIgnoreFailedSources(t *testing.T) {
+	db := buildTestDB(t)
+	defer db.Close()
+
+	if err := db.RecordSourceError("ripe_route", errors.New("source failed")); err != nil {
+		t.Fatalf("RecordSourceError returned error: %v", err)
+	}
+
+	got, err := ByOrigin(db, "AS16625", 4, nil)
+	if err != nil {
+		t.Fatalf("ByOrigin returned error: %v", err)
+	}
+	want := []string{"23.32.0.0/11"}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("ByOrigin after source failure = %#v, want %#v", got, want)
+	}
+
+	got, err = ByMaintainer(db, "AKAMAI-MNT", 4, nil)
+	if err != nil {
+		t.Fatalf("ByMaintainer returned error: %v", err)
+	}
+	if len(got) != 0 {
+		t.Fatalf("ByMaintainer after source failure = %#v, want empty", got)
 	}
 }
 

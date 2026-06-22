@@ -54,6 +54,27 @@ func (db *DB) Stats() Stats {
 	return Stats{DroppedDefaults: db.droppedDefaults}
 }
 
+func (db *DB) RecordSourceError(sourceName string, sourceErr error) error {
+	tx, err := db.conn.Begin()
+	if err != nil {
+		return fmt.Errorf("begin source error update: %w", err)
+	}
+	defer tx.Rollback()
+
+	sourceID, err := upsertSource(tx, sourceName)
+	if err != nil {
+		return err
+	}
+	if err := replaceSourceObjects(tx, sourceID); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(`UPDATE sources SET ok = 0, error = ? WHERE id = ?`, sourceErr.Error(), sourceID); err != nil {
+		return fmt.Errorf("record source error: %w", err)
+	}
+
+	return tx.Commit()
+}
+
 func (db *DB) InsertRPSLSource(sourceName string, objects []rpsl.Object) error {
 	tx, err := db.conn.Begin()
 	if err != nil {
@@ -229,6 +250,9 @@ func upsertSource(tx *sql.Tx, name string) (int64, error) {
 	}
 	if _, err := tx.Exec(`INSERT OR IGNORE INTO sources(name) VALUES (?)`, name); err != nil {
 		return 0, fmt.Errorf("insert source %q: %w", name, err)
+	}
+	if _, err := tx.Exec(`UPDATE sources SET ok = 1, error = NULL WHERE name = ?`, name); err != nil {
+		return 0, fmt.Errorf("mark source %q ok: %w", name, err)
 	}
 
 	var sourceID int64

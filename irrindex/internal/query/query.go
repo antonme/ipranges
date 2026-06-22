@@ -28,6 +28,7 @@ JOIN sources s ON s.id = o.source_id
 WHERE o.family = ?
   AND o.prefix IS NOT NULL
   AND o.prefix != ''
+  AND s.ok = 1
   AND a.name = ?
   AND a.value = ?`
 	args := []any{family, attrName, attrValue}

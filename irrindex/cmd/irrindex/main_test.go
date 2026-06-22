@@ -331,6 +331,37 @@ func TestRunCompareWritesReports(t *testing.T) {
 	}
 }
 
+func TestRunManifestSummarize(t *testing.T) {
+	dir := t.TempDir()
+	manifestPath := writeFile(t, dir, "snapshots.json", `[
+  {"name":"daily-00","cadence":"daily","created_at":"2026-06-22T00:00:00Z"},
+  {"name":"daily-01","cadence":"daily","created_at":"2026-06-21T00:00:00Z"},
+  {"name":"daily-02","cadence":"daily","created_at":"2026-06-20T00:00:00Z"},
+  {"name":"daily-03","cadence":"daily","created_at":"2026-06-19T00:00:00Z"},
+  {"name":"daily-04","cadence":"daily","created_at":"2026-06-18T00:00:00Z"},
+  {"name":"daily-05","cadence":"daily","created_at":"2026-06-17T00:00:00Z"},
+  {"name":"daily-06","cadence":"daily","created_at":"2026-06-16T00:00:00Z"},
+  {"name":"daily-07","cadence":"daily","created_at":"2026-06-15T00:00:00Z"},
+  {"name":"daily-08","cadence":"daily","created_at":"2026-06-14T00:00:00Z"},
+  {"name":"daily-09","cadence":"daily","created_at":"2026-06-13T00:00:00Z"},
+  {"name":"daily-10","cadence":"daily","created_at":"2026-06-12T00:00:00Z"},
+  {"name":"daily-11","cadence":"daily","created_at":"2026-06-11T00:00:00Z"},
+  {"name":"daily-12","cadence":"daily","created_at":"2026-06-10T00:00:00Z"},
+  {"name":"daily-13","cadence":"daily","created_at":"2026-06-09T00:00:00Z"},
+  {"name":"daily-14","cadence":"daily","created_at":"2026-06-08T00:00:00Z"}
+]`)
+	var stdout, stderr bytes.Buffer
+
+	code := run([]string{"manifest", "summarize", "--manifest", manifestPath}, &stdout, &stderr)
+
+	if code != 0 {
+		t.Fatalf("exit code = %d, want 0; stderr = %q", code, stderr.String())
+	}
+	if !strings.Contains(stdout.String(), "keep=14 prune=1") {
+		t.Fatalf("stdout = %q, want keep/prune summary", stdout.String())
+	}
+}
+
 func buildCommandDB(t *testing.T) string {
 	t.Helper()
 

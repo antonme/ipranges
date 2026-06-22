@@ -28,6 +28,7 @@ var subcommands = map[string]struct{}{
 	"compare":         {},
 	"whois-shim":      {},
 	"extract-queries": {},
+	"manifest":        {},
 }
 
 func main() {
@@ -62,6 +63,8 @@ func run(args []string, stdout, stderr io.Writer) int {
 		return runExtractQueries(args[1:], stdout, stderr)
 	case "compare":
 		return runCompare(args[1:], stdout, stderr)
+	case "manifest":
+		return runManifest(args[1:], stdout, stderr)
 	}
 
 	fmt.Fprintf(stderr, "%s is not implemented yet\n", subcommand)
@@ -69,7 +72,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 }
 
 func printUsage(w io.Writer) {
-	fmt.Fprintln(w, "Usage: irrindex <fetch|build|verify|query|compare|whois-shim|extract-queries> [options]")
+	fmt.Fprintln(w, "Usage: irrindex <fetch|build|verify|query|compare|whois-shim|extract-queries|manifest> [options]")
 }
 
 func runQuery(args []string, stdout, stderr io.Writer) int {
@@ -161,6 +164,62 @@ func runExtractQueries(args []string, stdout, stderr io.Writer) int {
 		return 1
 	}
 	fmt.Fprintf(stdout, "wrote %d queries to %s\n", len(specs), *outPath)
+	return 0
+}
+
+func runManifest(args []string, stdout, stderr io.Writer) int {
+	if len(args) == 0 {
+		fmt.Fprintln(stderr, "Usage: irrindex manifest summarize --manifest <snapshots.json>")
+		return 2
+	}
+	switch args[0] {
+	case "summarize":
+		return runManifestSummarize(args[1:], stdout, stderr)
+	default:
+		fmt.Fprintf(stderr, "unknown manifest subcommand %q\n", args[0])
+		return 2
+	}
+}
+
+func runManifestSummarize(args []string, stdout, stderr io.Writer) int {
+	flags := flag.NewFlagSet("manifest summarize", flag.ContinueOnError)
+	flags.SetOutput(stderr)
+	manifestPath := flags.String("manifest", "", "snapshot manifest JSON")
+	dbPath := flags.String("db", "", "optional SQLite DB path")
+	if err := flags.Parse(args); err != nil {
+		return 2
+	}
+	if *manifestPath == "" {
+		fmt.Fprintln(stderr, "manifest summarize: --manifest is required")
+		return 2
+	}
+	if *dbPath != "" {
+		db, err := store.Open(*dbPath)
+		if err != nil {
+			fmt.Fprintf(stderr, "open db: %v\n", err)
+			return 1
+		}
+		db.Close()
+	}
+
+	data, err := os.ReadFile(*manifestPath)
+	if err != nil {
+		fmt.Fprintf(stderr, "read manifest: %v\n", err)
+		return 1
+	}
+	var snapshots []manifest.Snapshot
+	if err := json.Unmarshal(data, &snapshots); err != nil {
+		fmt.Fprintf(stderr, "parse manifest: %v\n", err)
+		return 1
+	}
+	plan := manifest.PlanRetention(snapshots, manifest.DefaultRetentionPolicy())
+	fmt.Fprintf(stdout, "keep=%d prune=%d\n", len(plan.Keep), len(plan.Prune))
+	for _, snapshot := range plan.Keep {
+		fmt.Fprintf(stdout, "keep %s %s %s\n", snapshot.Cadence, snapshot.CreatedAt.Format("2006-01-02"), snapshot.Name)
+	}
+	for _, snapshot := range plan.Prune {
+		fmt.Fprintf(stdout, "prune %s %s %s\n", snapshot.Cadence, snapshot.CreatedAt.Format("2006-01-02"), snapshot.Name)
+	}
 	return 0
 }
 

@@ -42,7 +42,7 @@ func TestByMaintainerIndexesEveryMaintainer(t *testing.T) {
 	}
 }
 
-func TestByMaintainerConvertsInetnumRanges(t *testing.T) {
+func TestByMaintainerDoesNotExpandInetnumRanges(t *testing.T) {
 	db := buildTestDB(t)
 	defer db.Close()
 
@@ -50,9 +50,8 @@ func TestByMaintainerConvertsInetnumRanges(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ByMaintainer returned error: %v", err)
 	}
-	want := []string{"213.159.160.0/19"}
-	if !reflect.DeepEqual(got, want) {
-		t.Fatalf("ByMaintainer inetnum = %#v, want %#v", got, want)
+	if len(got) != 0 {
+		t.Fatalf("ByMaintainer inetnum = %#v, want no route prefixes from raw inetnum ranges", got)
 	}
 }
 

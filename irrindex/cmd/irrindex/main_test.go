@@ -103,6 +103,10 @@ sources:
     url: "https://example.invalid/riswhoisdump.IPv4.gz"
     format: "riswhois"
     family: 4
+  ripe_inetnum:
+    url: "https://example.invalid/ripe.db.inetnum.gz"
+    format: "rpsl"
+    object_types: ["inetnum"]
 `)
 	cacheDir := filepath.Join(dir, "cache")
 	if err := os.MkdirAll(cacheDir, 0o755); err != nil {
@@ -114,6 +118,7 @@ mnt-by:         AKAMAI-MNT
 source:         RIPE
 `))
 	writeBytes(t, filepath.Join(cacheDir, "ris_ipv4.gz"), gzipBytes(t, "64073\t0.0.0.0/0\t1\n16625\t23.32.0.0/11\t12\n"))
+	writeBytes(t, filepath.Join(cacheDir, "ripe_inetnum.gz"), []byte("not gzip because build must skip inetnum-only sources"))
 
 	dbPath := filepath.Join(dir, "index.db")
 	var stdout, stderr bytes.Buffer
@@ -125,6 +130,9 @@ source:         RIPE
 	}
 	if !strings.Contains(stdout.String(), "ripe_route ok") || !strings.Contains(stdout.String(), "ris_ipv4 ok") {
 		t.Fatalf("stdout = %q, want build source summaries", stdout.String())
+	}
+	if !strings.Contains(stdout.String(), "ripe_inetnum skipped") {
+		t.Fatalf("stdout = %q, want inetnum skip summary", stdout.String())
 	}
 
 	db, err := store.Open(dbPath)

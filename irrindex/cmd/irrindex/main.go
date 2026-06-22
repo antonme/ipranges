@@ -354,6 +354,10 @@ func runBuild(args []string, stdout, stderr io.Writer) int {
 
 	successes := 0
 	for _, source := range cfg.Sources {
+		if shouldSkipBuildSource(source) {
+			fmt.Fprintf(stdout, "%s skipped unsupported_object_types\n", source.Name)
+			continue
+		}
 		count, err := buildSource(db, source, filepath.Join(*cacheDir, source.Name+".gz"))
 		if err != nil {
 			if recordErr := db.RecordSourceError(source.Name, err); recordErr != nil {
@@ -370,6 +374,19 @@ func runBuild(args []string, stdout, stderr io.Writer) int {
 		return 1
 	}
 	return 0
+}
+
+func shouldSkipBuildSource(source config.Source) bool {
+	if source.Format != "rpsl" || len(source.ObjectTypes) == 0 {
+		return false
+	}
+	for _, objectType := range source.ObjectTypes {
+		switch objectType {
+		case "route", "route6":
+			return false
+		}
+	}
+	return true
 }
 
 func runVerify(args []string, stdout, stderr io.Writer) int {

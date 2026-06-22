@@ -82,6 +82,71 @@ func TestBuildReportLocalIncludesLive(t *testing.T) {
 	}
 }
 
+func TestBuildReportReportsInvalidLiveLines(t *testing.T) {
+	repoRoot := t.TempDir()
+	writeText(t, filepath.Join(repoRoot, "sample", "ipv4.txt"), "Something went wrong\n10.0.0.0/24\n")
+
+	db, err := store.Open(filepath.Join(t.TempDir(), "index.db"))
+	if err != nil {
+		t.Fatalf("Open returned error: %v", err)
+	}
+	defer db.Close()
+
+	err = db.InsertRPSLSource("radb", []rpsl.Object{{
+		Type:   "route",
+		Prefix: "10.0.0.0/24",
+		Attrs:  map[string][]string{"origin": {"AS64500"}},
+	}})
+	if err != nil {
+		t.Fatalf("InsertRPSLSource returned error: %v", err)
+	}
+
+	report, err := BuildReport(repoRoot, []config.Query{{
+		Downloader: "sample",
+		Kind:       "origin",
+		Value:      "AS64500",
+		Mirrors:    []string{"radb"},
+	}}, db)
+	if err != nil {
+		t.Fatalf("BuildReport returned error: %v", err)
+	}
+	if len(report.Services) != 1 {
+		t.Fatalf("service count = %d, want 1", len(report.Services))
+	}
+
+	service := report.Services[0]
+	if service.Status != "invalid_live_lines" {
+		t.Fatalf("status = %q, want invalid_live_lines", service.Status)
+	}
+	if service.InvalidLiveCount != 1 {
+		t.Fatalf("invalid_live_count = %d, want 1", service.InvalidLiveCount)
+	}
+	if len(service.InvalidLive) != 1 || service.InvalidLive[0] != "sample/ipv4.txt:1: Something went wrong" {
+		t.Fatalf("invalid_live = %#v, want recorded invalid line", service.InvalidLive)
+	}
+}
+
+func TestNormalizeCIDRAcceptsBareHostAddresses(t *testing.T) {
+	for _, tc := range []struct {
+		name  string
+		value string
+		want  string
+	}{
+		{name: "ipv4", value: "149.126.75.177", want: "149.126.75.177/32"},
+		{name: "ipv6", value: "2001:db8::1", want: "2001:db8::1/128"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := normalizeCIDR(tc.value)
+			if err != nil {
+				t.Fatalf("normalizeCIDR returned error: %v", err)
+			}
+			if got != tc.want {
+				t.Fatalf("normalizeCIDR = %q, want %q", got, tc.want)
+			}
+		})
+	}
+}
+
 func writeText(t *testing.T, path string, body string) {
 	t.Helper()
 

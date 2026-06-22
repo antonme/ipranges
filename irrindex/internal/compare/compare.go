@@ -20,14 +20,16 @@ type Report struct {
 }
 
 type ServiceReport struct {
-	Downloader     string   `json:"downloader"`
-	Status         string   `json:"status"`
-	LiveCount      int      `json:"live_count"`
-	LocalCount     int      `json:"local_count"`
-	LocalOnlyCount int      `json:"local_only_count"`
-	LiveOnlyCount  int      `json:"live_only_count"`
-	LocalOnly      []string `json:"local_only,omitempty"`
-	LiveOnly       []string `json:"live_only,omitempty"`
+	Downloader       string   `json:"downloader"`
+	Status           string   `json:"status"`
+	LiveCount        int      `json:"live_count"`
+	LocalCount       int      `json:"local_count"`
+	InvalidLiveCount int      `json:"invalid_live_count"`
+	LocalOnlyCount   int      `json:"local_only_count"`
+	LiveOnlyCount    int      `json:"live_only_count"`
+	InvalidLive      []string `json:"invalid_live,omitempty"`
+	LocalOnly        []string `json:"local_only,omitempty"`
+	LiveOnly         []string `json:"live_only,omitempty"`
 }
 
 func BuildReport(repoRoot string, queries []config.Query, db *store.DB) (Report, error) {
@@ -38,7 +40,7 @@ func BuildReport(repoRoot string, queries []config.Query, db *store.DB) (Report,
 
 	report := Report{Services: make([]ServiceReport, 0, len(byDownloader))}
 	for downloader, downloaderQueries := range byDownloader {
-		live, err := readLiveCIDRs(repoRoot, downloader)
+		live, invalidLive, err := readLiveCIDRs(repoRoot, downloader)
 		if err != nil {
 			return Report{}, err
 		}
@@ -46,12 +48,15 @@ func BuildReport(repoRoot string, queries []config.Query, db *store.DB) (Report,
 		if err != nil {
 			return Report{}, fmt.Errorf("%s: %w", downloader, err)
 		}
-		report.Services = append(report.Services, diffService(downloader, live, local))
+		report.Services = append(report.Services, diffService(downloader, live, local, invalidLive))
 	}
 
 	sort.Slice(report.Services, func(i, j int) bool {
 		if report.Services[i].LiveOnlyCount != report.Services[j].LiveOnlyCount {
 			return report.Services[i].LiveOnlyCount > report.Services[j].LiveOnlyCount
+		}
+		if report.Services[i].InvalidLiveCount != report.Services[j].InvalidLiveCount {
+			return report.Services[i].InvalidLiveCount > report.Services[j].InvalidLiveCount
 		}
 		return report.Services[i].Downloader < report.Services[j].Downloader
 	})
@@ -76,16 +81,17 @@ func WriteJSON(path string, report Report) error {
 func WriteMarkdown(path string, report Report) error {
 	var b strings.Builder
 	b.WriteString("# Local Routing Index Comparison\n\n")
-	b.WriteString("| downloader | status | live | local | live only | local only |\n")
-	b.WriteString("| --- | --- | ---: | ---: | ---: | ---: |\n")
+	b.WriteString("| downloader | status | live | local | live only | local only | invalid live |\n")
+	b.WriteString("| --- | --- | ---: | ---: | ---: | ---: | ---: |\n")
 	for _, service := range report.Services {
-		fmt.Fprintf(&b, "| %s | %s | %d | %d | %d | %d |\n",
+		fmt.Fprintf(&b, "| %s | %s | %d | %d | %d | %d | %d |\n",
 			service.Downloader,
 			service.Status,
 			service.LiveCount,
 			service.LocalCount,
 			service.LiveOnlyCount,
 			service.LocalOnlyCount,
+			service.InvalidLiveCount,
 		)
 	}
 
@@ -128,27 +134,32 @@ func queryLocalCIDRs(db *store.DB, queries []config.Query) (map[string]struct{},
 	return local, nil
 }
 
-func readLiveCIDRs(repoRoot string, downloader string) (map[string]struct{}, error) {
+func readLiveCIDRs(repoRoot string, downloader string) (map[string]struct{}, []string, error) {
 	live := map[string]struct{}{}
+	var invalid []string
 	for _, name := range []string{"ipv4.txt", "ipv6.txt"} {
 		path := filepath.Join(repoRoot, downloader, name)
-		if err := readCIDRFile(path, live); err != nil {
-			return nil, err
+		label := filepath.ToSlash(filepath.Join(downloader, name))
+		fileInvalid, err := readCIDRFile(path, label, live)
+		if err != nil {
+			return nil, nil, err
 		}
+		invalid = append(invalid, fileInvalid...)
 	}
-	return live, nil
+	return live, invalid, nil
 }
 
-func readCIDRFile(path string, out map[string]struct{}) error {
+func readCIDRFile(path string, label string, out map[string]struct{}) ([]string, error) {
 	file, err := os.Open(path)
 	if os.IsNotExist(err) {
-		return nil
+		return nil, nil
 	}
 	if err != nil {
-		return fmt.Errorf("open live CIDR file %s: %w", path, err)
+		return nil, fmt.Errorf("open live CIDR file %s: %w", path, err)
 	}
 	defer file.Close()
 
+	var invalid []string
 	scanner := bufio.NewScanner(file)
 	lineNo := 0
 	for scanner.Scan() {
@@ -159,28 +170,31 @@ func readCIDRFile(path string, out map[string]struct{}) error {
 		}
 		prefix, err := normalizeCIDR(strings.Fields(line)[0])
 		if err != nil {
-			return fmt.Errorf("%s:%d: %w", path, lineNo, err)
+			invalid = append(invalid, fmt.Sprintf("%s:%d: %s", label, lineNo, line))
+			continue
 		}
 		out[prefix] = struct{}{}
 	}
 	if err := scanner.Err(); err != nil {
-		return fmt.Errorf("read live CIDR file %s: %w", path, err)
+		return nil, fmt.Errorf("read live CIDR file %s: %w", path, err)
 	}
-	return nil
+	return invalid, nil
 }
 
-func diffService(downloader string, live map[string]struct{}, local map[string]struct{}) ServiceReport {
+func diffService(downloader string, live map[string]struct{}, local map[string]struct{}, invalidLive []string) ServiceReport {
 	localOnly := difference(local, live)
 	liveOnly := difference(live, local)
 	return ServiceReport{
-		Downloader:     downloader,
-		Status:         statusForDiff(len(live), len(local), len(liveOnly), len(localOnly)),
-		LiveCount:      len(live),
-		LocalCount:     len(local),
-		LocalOnlyCount: len(localOnly),
-		LiveOnlyCount:  len(liveOnly),
-		LocalOnly:      localOnly,
-		LiveOnly:       liveOnly,
+		Downloader:       downloader,
+		Status:           statusForDiff(len(live), len(local), len(liveOnly), len(localOnly), len(invalidLive)),
+		LiveCount:        len(live),
+		LocalCount:       len(local),
+		InvalidLiveCount: len(invalidLive),
+		LocalOnlyCount:   len(localOnly),
+		LiveOnlyCount:    len(liveOnly),
+		InvalidLive:      invalidLive,
+		LocalOnly:        localOnly,
+		LiveOnly:         liveOnly,
 	}
 }
 
@@ -196,10 +210,12 @@ func difference(left map[string]struct{}, right map[string]struct{}) []string {
 	return values
 }
 
-func statusForDiff(liveCount int, localCount int, liveOnlyCount int, localOnlyCount int) string {
+func statusForDiff(liveCount int, localCount int, liveOnlyCount int, localOnlyCount int, invalidLiveCount int) string {
 	switch {
 	case liveOnlyCount > 0:
 		return "live_only_missing"
+	case invalidLiveCount > 0:
+		return "invalid_live_lines"
 	case liveCount == localCount && localOnlyCount == 0:
 		return "equal"
 	case localOnlyCount > 0:
@@ -210,9 +226,17 @@ func statusForDiff(liveCount int, localCount int, liveOnlyCount int, localOnlyCo
 }
 
 func normalizeCIDR(value string) (string, error) {
-	prefix, err := netip.ParsePrefix(strings.TrimSpace(value))
+	trimmed := strings.TrimSpace(value)
+	prefix, err := netip.ParsePrefix(trimmed)
 	if err != nil {
-		return "", fmt.Errorf("parse CIDR %q: %w", value, err)
+		addr, addrErr := netip.ParseAddr(trimmed)
+		if addrErr != nil {
+			return "", fmt.Errorf("parse CIDR %q: %w", value, err)
+		}
+		if addr.Is4() {
+			return netip.PrefixFrom(addr, 32).String(), nil
+		}
+		return netip.PrefixFrom(addr, 128).String(), nil
 	}
 	return prefix.Masked().String(), nil
 }

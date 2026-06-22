@@ -3,10 +3,9 @@ package store
 import (
 	"database/sql"
 	_ "embed"
-	"encoding/binary"
 	"fmt"
-	"math/bits"
 	"net/netip"
+	"strconv"
 	"strings"
 
 	"github.com/antonme/ipranges/irrindex/internal/ris"
@@ -227,17 +226,7 @@ func rpslObjectRows(obj rpsl.Object) ([]objectRow, bool, error) {
 			row.prefix = prefix
 			return []objectRow{row}, true, nil
 		}
-		prefixes, err := ipv4RangeToPrefixes(row.startIP, row.endIP)
-		if err != nil {
-			return nil, false, fmt.Errorf("convert inetnum range %q - %q: %w", row.startIP, row.endIP, err)
-		}
-		rows := make([]objectRow, 0, len(prefixes))
-		for _, prefix := range prefixes {
-			next := row
-			next.prefix = prefix
-			rows = append(rows, next)
-		}
-		return rows, true, nil
+		return []objectRow{row}, true, nil
 	default:
 		return nil, false, nil
 	}
@@ -315,9 +304,17 @@ func normalizeASN(value string) string {
 }
 
 func normalizePrefix(value string) (string, int, error) {
-	prefix, err := netip.ParsePrefix(strings.TrimSpace(value))
+	trimmed := strings.TrimSpace(value)
+	prefix, err := netip.ParsePrefix(trimmed)
 	if err != nil {
-		return "", 0, err
+		normalized, normalizeErr := normalizeLeadingZeroIPv4Prefix(trimmed)
+		if normalizeErr != nil {
+			return "", 0, err
+		}
+		prefix, err = netip.ParsePrefix(normalized)
+		if err != nil {
+			return "", 0, err
+		}
 	}
 	prefix = prefix.Masked()
 	if prefix.Addr().Is4() {
@@ -326,58 +323,34 @@ func normalizePrefix(value string) (string, int, error) {
 	return prefix.String(), 6, nil
 }
 
-func ipv4RangeToPrefixes(startValue string, endValue string) ([]string, error) {
-	startAddr, err := netip.ParseAddr(strings.TrimSpace(startValue))
-	if err != nil {
-		return nil, fmt.Errorf("parse start IP: %w", err)
-	}
-	endAddr, err := netip.ParseAddr(strings.TrimSpace(endValue))
-	if err != nil {
-		return nil, fmt.Errorf("parse end IP: %w", err)
-	}
-	if !startAddr.Is4() || !endAddr.Is4() {
-		return nil, fmt.Errorf("only IPv4 inetnum ranges are supported")
+func normalizeLeadingZeroIPv4Prefix(value string) (string, error) {
+	address, length, ok := strings.Cut(value, "/")
+	if !ok {
+		return "", fmt.Errorf("missing prefix length")
 	}
 
-	start := ipv4ToUint32(startAddr)
-	end := ipv4ToUint32(endAddr)
-	if start > end {
-		return nil, fmt.Errorf("start IP is greater than end IP")
+	octets := strings.Split(address, ".")
+	if len(octets) != 4 {
+		return "", fmt.Errorf("not dotted IPv4")
 	}
 
-	var prefixes []string
-	current := uint64(start)
-	last := uint64(end)
-	for current <= last {
-		blockSize := largestAlignedBlock(current)
-		remaining := last - current + 1
-		for blockSize > remaining {
-			blockSize >>= 1
+	normalizedOctets := make([]string, 0, 4)
+	for _, octet := range octets {
+		octet = strings.TrimSpace(octet)
+		if octet == "" {
+			return "", fmt.Errorf("empty IPv4 octet")
 		}
-
-		prefixLen := 32 - (bits.Len64(blockSize) - 1)
-		prefixes = append(prefixes, fmt.Sprintf("%s/%d", uint32ToIPv4(uint32(current)), prefixLen))
-		current += blockSize
+		value, err := strconv.Atoi(octet)
+		if err != nil {
+			return "", fmt.Errorf("parse IPv4 octet %q: %w", octet, err)
+		}
+		if value < 0 || value > 255 {
+			return "", fmt.Errorf("IPv4 octet %q out of range", octet)
+		}
+		normalizedOctets = append(normalizedOctets, strconv.Itoa(value))
 	}
-	return prefixes, nil
-}
 
-func largestAlignedBlock(value uint64) uint64 {
-	if value == 0 {
-		return uint64(1) << 32
-	}
-	return value & -value
-}
-
-func ipv4ToUint32(addr netip.Addr) uint32 {
-	bytes := addr.As4()
-	return binary.BigEndian.Uint32(bytes[:])
-}
-
-func uint32ToIPv4(value uint32) netip.Addr {
-	var bytes [4]byte
-	binary.BigEndian.PutUint32(bytes[:], value)
-	return netip.AddrFrom4(bytes)
+	return strings.Join(normalizedOctets, ".") + "/" + strings.TrimSpace(length), nil
 }
 
 func isDefaultPrefix(prefix string) bool {

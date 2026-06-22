@@ -1,11 +1,14 @@
 package fetch
 
 import (
+	"context"
 	"crypto/sha256"
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"time"
 
@@ -87,16 +90,32 @@ func fetchOne(client *http.Client, url string, path string) error {
 	return lastErr
 }
 
-func fetchAttempt(client *http.Client, url string, path string) error {
-	resp, err := client.Get(url)
+func fetchAttempt(client *http.Client, rawURL string, path string) error {
+	parsedURL, err := url.Parse(rawURL)
 	if err != nil {
-		return fmt.Errorf("GET %s: %w", url, err)
+		return fmt.Errorf("parse source URL %q: %w", rawURL, err)
+	}
+
+	switch parsedURL.Scheme {
+	case "http", "https":
+		return fetchHTTPAttempt(client, rawURL, path)
+	case "ftp":
+		return fetchCurlAttempt(rawURL, path)
+	default:
+		return fmt.Errorf("unsupported source URL scheme %q", parsedURL.Scheme)
+	}
+}
+
+func fetchHTTPAttempt(client *http.Client, rawURL string, path string) error {
+	resp, err := client.Get(rawURL)
+	if err != nil {
+		return fmt.Errorf("GET %s: %w", rawURL, err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {
 		_, _ = io.Copy(io.Discard, resp.Body)
-		return fmt.Errorf("GET %s: status %s", url, resp.Status)
+		return fmt.Errorf("GET %s: status %s", rawURL, resp.Status)
 	}
 
 	tmpPath := path + ".tmp"
@@ -113,6 +132,29 @@ func fetchAttempt(client *http.Client, url string, path string) error {
 	if closeErr != nil {
 		_ = os.Remove(tmpPath)
 		return fmt.Errorf("close cache file: %w", closeErr)
+	}
+	if err := os.Rename(tmpPath, path); err != nil {
+		_ = os.Remove(tmpPath)
+		return fmt.Errorf("rename cache file: %w", err)
+	}
+	return nil
+}
+
+func fetchCurlAttempt(rawURL string, path string) error {
+	tmpPath := path + ".tmp"
+	_ = os.Remove(tmpPath)
+
+	ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
+	defer cancel()
+
+	cmd := exec.CommandContext(ctx, "curl", "-fL", "--output", tmpPath, rawURL)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		_ = os.Remove(tmpPath)
+		if ctx.Err() != nil {
+			return fmt.Errorf("curl %s: %w", rawURL, ctx.Err())
+		}
+		return fmt.Errorf("curl %s: %w: %s", rawURL, err, string(output))
 	}
 	if err := os.Rename(tmpPath, path); err != nil {
 		_ = os.Remove(tmpPath)

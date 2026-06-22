@@ -24,7 +24,7 @@ sources:
     format: "rpsl"
     object_types: ["inet6num"]
   radb:
-    url: "https://ftp.radb.net/radb/dbase/radb.db.gz"
+    url: "ftp://ftp.radb.net/radb/dbase/radb.db.gz"
     format: "rpsl"
     object_types: ["route", "route6"]
   nttcom:

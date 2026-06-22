@@ -69,6 +69,7 @@ func TestCommittedSourcesIncludeCurrentMirrorDumps(t *testing.T) {
 	}
 
 	want := map[string]string{
+		"radb":       "ftp://ftp.radb.net/radb/dbase/radb.db.gz",
 		"nttcom":     "https://rr1.ntt.net/nttcomRR/nttcom.db.gz",
 		"bgp_net_br": "https://ftp.bgp.net.br/tc.db.gz",
 	}

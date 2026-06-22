@@ -13,6 +13,25 @@ Improve shadow index coverage for the IRR mirrors that current downloader script
 
 ## Sources Added
 
+### RADb
+
+Source name: `radb`
+
+URL:
+
+```text
+ftp://ftp.radb.net/radb/dbase/radb.db.gz
+```
+
+Evidence:
+
+- Repeated HTTPS attempts to `https://ftp.radb.net/radb/dbase/radb.db.gz` timed out on TCP port 443.
+- TCP checks to `ftp.radb.net` showed port 21 reachable.
+- A manual FTP download on 2026-06-22 succeeded and produced SHA256 `11af2bca9fb60a2e4d4bf3aa58b6f9426dd6cef1c5696f9b6ff2653c31cd7f3a`.
+- A later `irrindex fetch` run using `ftp://ftp.radb.net/radb/dbase/radb.db.gz` succeeded with the same SHA256 and size `25299034`.
+
+Decision: use FTP directly for RADb instead of trying HTTPS first.
+
 ### NTTCOM
 
 Added source name: `nttcom`

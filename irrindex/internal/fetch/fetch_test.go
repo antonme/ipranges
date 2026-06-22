@@ -85,6 +85,68 @@ func TestFetchAllDownloadsSourcesAndRecordsErrors(t *testing.T) {
 	}
 }
 
+func TestFetchAllDownloadsFTPSourcesWithCurl(t *testing.T) {
+	payload := gzipBytes(t, "route: 198.51.100.0/24\norigin: AS64496\n")
+	dir := t.TempDir()
+	payloadPath := filepath.Join(dir, "payload.gz")
+	if err := os.WriteFile(payloadPath, payload, 0o644); err != nil {
+		t.Fatalf("write fake curl payload: %v", err)
+	}
+
+	curlPath := filepath.Join(dir, "curl")
+	curlScript := `#!/bin/sh
+set -eu
+out=""
+url=""
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --output|-o)
+      out="$2"
+      shift 2
+      ;;
+    -*)
+      shift
+      ;;
+    *)
+      url="$1"
+      shift
+      ;;
+  esac
+done
+if [ "$url" != "ftp://example.test/radb.db.gz" ]; then
+  echo "unexpected url: $url" >&2
+  exit 7
+fi
+cp "$IRRINDEX_FAKE_CURL_PAYLOAD" "$out"
+`
+	if err := os.WriteFile(curlPath, []byte(curlScript), 0o755); err != nil {
+		t.Fatalf("write fake curl: %v", err)
+	}
+	t.Setenv("PATH", dir+string(os.PathListSeparator)+os.Getenv("PATH"))
+	t.Setenv("IRRINDEX_FAKE_CURL_PAYLOAD", payloadPath)
+
+	cacheDir := filepath.Join(dir, "cache")
+	manifest, err := FetchAll(config.SourcesConfig{Sources: []config.Source{{
+		Name:   "radb",
+		URL:    "ftp://example.test/radb.db.gz",
+		Format: "rpsl",
+	}}}, cacheDir)
+	if err != nil {
+		t.Fatalf("FetchAll returned error: %v", err)
+	}
+	if len(manifest.Sources) != 1 || !manifest.Sources[0].OK {
+		t.Fatalf("manifest = %+v, want successful FTP source", manifest)
+	}
+
+	got, err := os.ReadFile(filepath.Join(cacheDir, "radb.gz"))
+	if err != nil {
+		t.Fatalf("read cached FTP payload: %v", err)
+	}
+	if !bytes.Equal(got, payload) {
+		t.Fatal("cached FTP payload differs from fake curl payload")
+	}
+}
+
 func TestFetchAllErrorsWhenEverySourceFails(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "upstream failure", http.StatusBadGateway)

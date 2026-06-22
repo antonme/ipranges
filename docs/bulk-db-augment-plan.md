@@ -15,6 +15,7 @@
 - Treat the project as a broad source collector, not an authoritative routing validator.
 - Keep ARIN Whois-RWS org-net lookup live initially; do not use ARIN Bulk Whois unless the user explicitly accepts ARIN's approval and Terms of Use path.
 - Store raw dumps and built indexes outside normal git history: GitHub Actions cache/artifacts or release assets only.
+- FTP source downloads are allowed for mirrors whose HTTPS endpoints are broken; the Go fetcher shells out to `curl` for `ftp://` URLs.
 - Local query tools must return exit code `0` for "no results" so they do not break existing `set -euo pipefail` downloader patterns.
 - Filter `0.0.0.0/0` and `::/0` in the indexer and keep existing downloader guards intact.
 - Preserve source provenance in reports: local output must be explainable by source, object type, ASN/maintainer, and snapshot date.
@@ -196,7 +197,7 @@ sources:
     format: "rpsl"
     object_types: ["inet6num"]
   radb:
-    url: "https://ftp.radb.net/radb/dbase/radb.db.gz"
+    url: "ftp://ftp.radb.net/radb/dbase/radb.db.gz"
     format: "rpsl"
     object_types: ["route", "route6"]
   nttcom:

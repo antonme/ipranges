@@ -18,17 +18,17 @@ const (
 )
 
 type Manifest struct {
-	Sources []SourceResult
+	Sources []SourceResult `json:"sources"`
 }
 
 type SourceResult struct {
-	Name      string
-	URL       string
-	Path      string
-	SHA256    string
-	SizeBytes int64
-	OK        bool
-	Error     string
+	Name      string `json:"name"`
+	URL       string `json:"url"`
+	Path      string `json:"path"`
+	SHA256    string `json:"sha256"`
+	SizeBytes int64  `json:"size_bytes"`
+	OK        bool   `json:"ok"`
+	Error     string `json:"error,omitempty"`
 }
 
 func FetchAll(cfg config.SourcesConfig, cacheDir string) (Manifest, error) {

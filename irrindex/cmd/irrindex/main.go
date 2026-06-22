@@ -2,6 +2,7 @@ package main
 
 import (
 	"compress/gzip"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
@@ -51,6 +52,8 @@ func run(args []string, stdout, stderr io.Writer) int {
 		return runFetch(args[1:], stdout, stderr)
 	case "build":
 		return runBuild(args[1:], stdout, stderr)
+	case "verify":
+		return runVerify(args[1:], stdout, stderr)
 	case "query":
 		return runQuery(args[1:], stdout, stderr)
 	case "whois-shim":
@@ -165,12 +168,21 @@ func runCompare(args []string, stdout, stderr io.Writer) int {
 	flags := flag.NewFlagSet("compare", flag.ContinueOnError)
 	flags.SetOutput(stderr)
 	repoRoot := flags.String("repo", ".", "repository root")
+	liveRoot := flags.String("live-root", "", "repository root alias")
 	queriesPath := flags.String("queries", "irrindex/config/queries.yaml", "queries YAML path")
 	dbPath := flags.String("db", "irrindex.db", "SQLite DB path")
 	jsonPath := flags.String("json", "comparison.json", "JSON output path")
 	mdPath := flags.String("md", "comparison.md", "Markdown output path")
+	outDir := flags.String("out", "", "output directory for comparison reports")
 	if err := flags.Parse(args); err != nil {
 		return 2
+	}
+	if *liveRoot != "" {
+		*repoRoot = *liveRoot
+	}
+	if *outDir != "" {
+		*jsonPath = filepath.Join(*outDir, "comparison.json")
+		*mdPath = filepath.Join(*outDir, "comparison.md")
 	}
 
 	queriesCfg, err := config.LoadQueries(*queriesPath)
@@ -206,9 +218,18 @@ func runFetch(args []string, stdout, stderr io.Writer) int {
 	flags := flag.NewFlagSet("fetch", flag.ContinueOnError)
 	flags.SetOutput(stderr)
 	sourcesPath := flags.String("sources", "irrindex/config/sources.yaml", "sources YAML path")
+	configPath := flags.String("config", "", "sources YAML path alias")
 	cacheDir := flags.String("cache", "snapshots/cache", "cache directory")
+	cacheDirAlias := flags.String("cache-dir", "", "cache directory alias")
+	manifestPath := flags.String("manifest", "", "source manifest JSON path")
 	if err := flags.Parse(args); err != nil {
 		return 2
+	}
+	if *configPath != "" {
+		*sourcesPath = *configPath
+	}
+	if *cacheDirAlias != "" {
+		*cacheDir = *cacheDirAlias
 	}
 
 	cfg, err := config.LoadSources(*sourcesPath)
@@ -218,6 +239,12 @@ func runFetch(args []string, stdout, stderr io.Writer) int {
 	}
 	manifest, err := fetch.FetchAll(cfg, *cacheDir)
 	printFetchManifest(stdout, manifest)
+	if *manifestPath != "" {
+		if writeErr := writeJSON(*manifestPath, manifest); writeErr != nil {
+			fmt.Fprintf(stderr, "write manifest: %v\n", writeErr)
+			return 1
+		}
+	}
 	if err != nil {
 		fmt.Fprintf(stderr, "fetch: %v\n", err)
 		return 1
@@ -239,10 +266,18 @@ func runBuild(args []string, stdout, stderr io.Writer) int {
 	flags := flag.NewFlagSet("build", flag.ContinueOnError)
 	flags.SetOutput(stderr)
 	sourcesPath := flags.String("sources", "irrindex/config/sources.yaml", "sources YAML path")
+	configPath := flags.String("config", "", "sources YAML path alias")
 	cacheDir := flags.String("cache", "snapshots/cache", "cache directory")
+	cacheDirAlias := flags.String("cache-dir", "", "cache directory alias")
 	dbPath := flags.String("db", "irrindex.db", "SQLite output path")
 	if err := flags.Parse(args); err != nil {
 		return 2
+	}
+	if *configPath != "" {
+		*sourcesPath = *configPath
+	}
+	if *cacheDirAlias != "" {
+		*cacheDir = *cacheDirAlias
 	}
 
 	cfg, err := config.LoadSources(*sourcesPath)
@@ -275,6 +310,48 @@ func runBuild(args []string, stdout, stderr io.Writer) int {
 		fmt.Fprintln(stderr, "build: all sources failed")
 		return 1
 	}
+	return 0
+}
+
+func runVerify(args []string, stdout, stderr io.Writer) int {
+	flags := flag.NewFlagSet("verify", flag.ContinueOnError)
+	flags.SetOutput(stderr)
+	dbPath := flags.String("db", "irrindex.db", "SQLite DB path")
+	if err := flags.Parse(args); err != nil {
+		return 2
+	}
+
+	db, err := store.Open(*dbPath)
+	if err != nil {
+		fmt.Fprintf(stderr, "open db: %v\n", err)
+		return 1
+	}
+	defer db.Close()
+
+	var sourceCount int
+	if err := db.SQL().QueryRow(`SELECT COUNT(*) FROM sources WHERE ok = 1`).Scan(&sourceCount); err != nil {
+		fmt.Fprintf(stderr, "verify sources: %v\n", err)
+		return 1
+	}
+	var objectCount int
+	if err := db.SQL().QueryRow(`SELECT COUNT(*) FROM objects`).Scan(&objectCount); err != nil {
+		fmt.Fprintf(stderr, "verify objects: %v\n", err)
+		return 1
+	}
+	var defaultCount int
+	if err := db.SQL().QueryRow(`SELECT COUNT(*) FROM objects WHERE prefix IN ('0.0.0.0/0', '::/0')`).Scan(&defaultCount); err != nil {
+		fmt.Fprintf(stderr, "verify defaults: %v\n", err)
+		return 1
+	}
+	if sourceCount == 0 || objectCount == 0 {
+		fmt.Fprintf(stderr, "verify failed: sources=%d objects=%d\n", sourceCount, objectCount)
+		return 1
+	}
+	if defaultCount > 0 {
+		fmt.Fprintf(stderr, "verify failed: default route objects=%d\n", defaultCount)
+		return 1
+	}
+	fmt.Fprintf(stdout, "verify ok sources=%d objects=%d\n", sourceCount, objectCount)
 	return 0
 }
 
@@ -377,4 +454,19 @@ func buildSource(db *store.DB, source config.Source, path string) (int, error) {
 	default:
 		return 0, fmt.Errorf("unsupported source format %q", source.Format)
 	}
+}
+
+func writeJSON(path string, value any) error {
+	data, err := json.MarshalIndent(value, "", "  ")
+	if err != nil {
+		return fmt.Errorf("marshal JSON: %w", err)
+	}
+	data = append(data, '\n')
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		return fmt.Errorf("create JSON dir: %w", err)
+	}
+	if err := os.WriteFile(path, data, 0o644); err != nil {
+		return fmt.Errorf("write JSON: %w", err)
+	}
+	return nil
 }

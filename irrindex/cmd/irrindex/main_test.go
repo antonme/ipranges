@@ -67,7 +67,8 @@ sources:
 	cacheDir := filepath.Join(dir, "cache")
 	var stdout, stderr bytes.Buffer
 
-	code := run([]string{"fetch", "-sources", sourcesPath, "-cache", cacheDir}, &stdout, &stderr)
+	manifestPath := filepath.Join(dir, "source-manifest.json")
+	code := run([]string{"fetch", "--config", sourcesPath, "--cache-dir", cacheDir, "--manifest", manifestPath}, &stdout, &stderr)
 
 	if code != 0 {
 		t.Fatalf("exit code = %d, want 0; stderr = %q", code, stderr.String())
@@ -81,6 +82,13 @@ sources:
 	}
 	if !bytes.Equal(got, payload) {
 		t.Fatal("cached source differs from upstream gzip bytes")
+	}
+	manifestData, err := os.ReadFile(manifestPath)
+	if err != nil {
+		t.Fatalf("read source manifest: %v", err)
+	}
+	if !strings.Contains(string(manifestData), `"name": "ripe_route"`) {
+		t.Fatalf("manifest = %s", manifestData)
 	}
 }
 
@@ -110,7 +118,7 @@ source:         RIPE
 	dbPath := filepath.Join(dir, "index.db")
 	var stdout, stderr bytes.Buffer
 
-	code := run([]string{"build", "-sources", sourcesPath, "-cache", cacheDir, "-db", dbPath}, &stdout, &stderr)
+	code := run([]string{"build", "--config", sourcesPath, "--cache-dir", cacheDir, "--db", dbPath}, &stdout, &stderr)
 
 	if code != 0 {
 		t.Fatalf("exit code = %d, want 0; stderr = %q", code, stderr.String())
@@ -140,6 +148,20 @@ source:         RIPE
 	}
 	if len(got) != 0 {
 		t.Fatalf("default route query = %#v, want empty", got)
+	}
+}
+
+func TestRunVerifyCommand(t *testing.T) {
+	dbPath := buildCommandDB(t)
+	var stdout, stderr bytes.Buffer
+
+	code := run([]string{"verify", "--db", dbPath}, &stdout, &stderr)
+
+	if code != 0 {
+		t.Fatalf("exit code = %d, want 0; stderr = %q", code, stderr.String())
+	}
+	if !strings.Contains(stdout.String(), "verify ok") {
+		t.Fatalf("stdout = %q, want verify ok", stdout.String())
 	}
 }
 
@@ -285,48 +307,27 @@ func TestRunCompareWritesReports(t *testing.T) {
 		t.Fatalf("close db: %v", err)
 	}
 
-	jsonPath := filepath.Join(dir, "comparison.json")
-	mdPath := filepath.Join(dir, "comparison.md")
 	var stdout, stderr bytes.Buffer
 
-	code := run([]string{"compare", "--repo", dir, "--queries", queriesPath, "--db", dbPath, "--json", jsonPath, "--md", mdPath}, &stdout, &stderr)
+	outDir := filepath.Join(dir, "report")
+	code := run([]string{"compare", "--live-root", dir, "--queries", queriesPath, "--db", dbPath, "--out", outDir}, &stdout, &stderr)
 
 	if code != 0 {
 		t.Fatalf("exit code = %d, want 0; stderr = %q", code, stderr.String())
 	}
-	jsonData, err := os.ReadFile(jsonPath)
+	jsonData, err := os.ReadFile(filepath.Join(outDir, "comparison.json"))
 	if err != nil {
 		t.Fatalf("read comparison json: %v", err)
 	}
 	if !strings.Contains(string(jsonData), `"status": "local_includes_live"`) {
 		t.Fatalf("comparison json = %s", jsonData)
 	}
-	mdData, err := os.ReadFile(mdPath)
+	mdData, err := os.ReadFile(filepath.Join(outDir, "comparison.md"))
 	if err != nil {
 		t.Fatalf("read comparison markdown: %v", err)
 	}
 	if !strings.Contains(string(mdData), "| sample | local_includes_live | 1 | 2 | 0 | 1 |") {
 		t.Fatalf("comparison markdown = %s", mdData)
-	}
-}
-
-func TestRunKnownSubcommandsAreRecognizedButNotImplemented(t *testing.T) {
-	for _, subcommand := range []string{"verify"} {
-		t.Run(subcommand, func(t *testing.T) {
-			var stdout, stderr bytes.Buffer
-
-			code := run([]string{subcommand}, &stdout, &stderr)
-
-			if code != 1 {
-				t.Fatalf("exit code = %d, want 1", code)
-			}
-			if !strings.Contains(stderr.String(), subcommand+" is not implemented yet") {
-				t.Fatalf("stderr = %q, want not implemented message", stderr.String())
-			}
-			if stdout.Len() != 0 {
-				t.Fatalf("stdout = %q, want empty", stdout.String())
-			}
-		})
 	}
 }
 

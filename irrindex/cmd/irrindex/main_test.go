@@ -257,8 +257,61 @@ get_routes 'AS16625'
 	}
 }
 
+func TestRunCompareWritesReports(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(dir, "sample"), 0o755); err != nil {
+		t.Fatalf("create sample dir: %v", err)
+	}
+	writeFile(t, filepath.Join(dir, "sample"), "ipv4.txt", "10.0.0.0/24\n")
+	queriesPath := writeFile(t, dir, "queries.yaml", `queries:
+  - downloader: sample
+    kind: origin
+    value: AS64500
+    mirrors: ["radb"]
+`)
+	dbPath := filepath.Join(dir, "index.db")
+	db, err := store.Open(dbPath)
+	if err != nil {
+		t.Fatalf("open db: %v", err)
+	}
+	err = db.InsertRPSLSource("radb", []rpsl.Object{
+		{Type: "route", Prefix: "10.0.0.0/24", Attrs: map[string][]string{"origin": {"AS64500"}}},
+		{Type: "route", Prefix: "10.0.1.0/24", Attrs: map[string][]string{"origin": {"AS64500"}}},
+	})
+	if err != nil {
+		t.Fatalf("insert source: %v", err)
+	}
+	if err := db.Close(); err != nil {
+		t.Fatalf("close db: %v", err)
+	}
+
+	jsonPath := filepath.Join(dir, "comparison.json")
+	mdPath := filepath.Join(dir, "comparison.md")
+	var stdout, stderr bytes.Buffer
+
+	code := run([]string{"compare", "--repo", dir, "--queries", queriesPath, "--db", dbPath, "--json", jsonPath, "--md", mdPath}, &stdout, &stderr)
+
+	if code != 0 {
+		t.Fatalf("exit code = %d, want 0; stderr = %q", code, stderr.String())
+	}
+	jsonData, err := os.ReadFile(jsonPath)
+	if err != nil {
+		t.Fatalf("read comparison json: %v", err)
+	}
+	if !strings.Contains(string(jsonData), `"status": "local_includes_live"`) {
+		t.Fatalf("comparison json = %s", jsonData)
+	}
+	mdData, err := os.ReadFile(mdPath)
+	if err != nil {
+		t.Fatalf("read comparison markdown: %v", err)
+	}
+	if !strings.Contains(string(mdData), "| sample | local_includes_live | 1 | 2 | 0 | 1 |") {
+		t.Fatalf("comparison markdown = %s", mdData)
+	}
+}
+
 func TestRunKnownSubcommandsAreRecognizedButNotImplemented(t *testing.T) {
-	for _, subcommand := range []string{"verify", "compare"} {
+	for _, subcommand := range []string{"verify"} {
 		t.Run(subcommand, func(t *testing.T) {
 			var stdout, stderr bytes.Buffer
 

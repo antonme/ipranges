@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	indexcompare "github.com/antonme/ipranges/irrindex/internal/compare"
 	"github.com/antonme/ipranges/irrindex/internal/config"
 	"github.com/antonme/ipranges/irrindex/internal/fetch"
 	"github.com/antonme/ipranges/irrindex/internal/manifest"
@@ -56,6 +57,8 @@ func run(args []string, stdout, stderr io.Writer) int {
 		return runWhoisShim(args[1:], stdout, stderr)
 	case "extract-queries":
 		return runExtractQueries(args[1:], stdout, stderr)
+	case "compare":
+		return runCompare(args[1:], stdout, stderr)
 	}
 
 	fmt.Fprintf(stderr, "%s is not implemented yet\n", subcommand)
@@ -155,6 +158,47 @@ func runExtractQueries(args []string, stdout, stderr io.Writer) int {
 		return 1
 	}
 	fmt.Fprintf(stdout, "wrote %d queries to %s\n", len(specs), *outPath)
+	return 0
+}
+
+func runCompare(args []string, stdout, stderr io.Writer) int {
+	flags := flag.NewFlagSet("compare", flag.ContinueOnError)
+	flags.SetOutput(stderr)
+	repoRoot := flags.String("repo", ".", "repository root")
+	queriesPath := flags.String("queries", "irrindex/config/queries.yaml", "queries YAML path")
+	dbPath := flags.String("db", "irrindex.db", "SQLite DB path")
+	jsonPath := flags.String("json", "comparison.json", "JSON output path")
+	mdPath := flags.String("md", "comparison.md", "Markdown output path")
+	if err := flags.Parse(args); err != nil {
+		return 2
+	}
+
+	queriesCfg, err := config.LoadQueries(*queriesPath)
+	if err != nil {
+		fmt.Fprintf(stderr, "load queries: %v\n", err)
+		return 1
+	}
+	db, err := store.Open(*dbPath)
+	if err != nil {
+		fmt.Fprintf(stderr, "open db: %v\n", err)
+		return 1
+	}
+	defer db.Close()
+
+	report, err := indexcompare.BuildReport(*repoRoot, queriesCfg.Queries, db)
+	if err != nil {
+		fmt.Fprintf(stderr, "compare: %v\n", err)
+		return 1
+	}
+	if err := indexcompare.WriteJSON(*jsonPath, report); err != nil {
+		fmt.Fprintf(stderr, "write json: %v\n", err)
+		return 1
+	}
+	if err := indexcompare.WriteMarkdown(*mdPath, report); err != nil {
+		fmt.Fprintf(stderr, "write markdown: %v\n", err)
+		return 1
+	}
+	fmt.Fprintf(stdout, "wrote %s and %s\n", *jsonPath, *mdPath)
 	return 0
 }
 

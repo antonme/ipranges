@@ -819,7 +819,18 @@ func sourceFiltersForHost(host string) ([]string, bool) {
 	case "":
 		return nil, true
 	case "whois.radb.net":
-		return []string{"radb"}, true
+		// RADb WHOIS answers include mirrored IRR sources; keep RIS separate
+		// because it is observed BGP data rather than an IRR mirror.
+		return []string{
+			"radb",
+			"arin_irr",
+			"ripe_route",
+			"ripe_route6",
+			"apnic_route",
+			"apnic_route6",
+			"nttcom",
+			"bgp_net_br",
+		}, true
 	case "whois.ripe.net":
 		return []string{"ripe", "ripe_route", "ripe_route6", "ripe_inetnum", "ripe_inet6num"}, true
 	case "riswhois.ripe.net":

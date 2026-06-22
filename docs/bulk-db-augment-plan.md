@@ -1029,6 +1029,24 @@ This is the correct apples-to-apples style for final replacement decisions:
 Cogent's geofeed remained in the downloader, while only the modeled WHOIS calls
 were replaced by local DB lookups.
 
+Follow-up Cogent probe after caching the full geofeed response and treating RADb
+as a mirrored IRR host:
+
+```text
+scope=shadow_whois_output_vs_committed_downloader_outputs
+downloader=cogent
+live_count=101850
+local_count=101592
+live_only_count=202
+local_only_count=107
+runtime=0.97s
+```
+
+This reduced missing committed coverage from 793 to 202. The remaining
+`live_only` prefixes are mostly not exact current local DB objects, or exist in
+the current local DB with non-Cogent origins; treat them as drift/staleness
+candidates before adding more source mappings.
+
 - [ ] **Step 4: Commit**
 
 ```bash

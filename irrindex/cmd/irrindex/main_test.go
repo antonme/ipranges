@@ -184,7 +184,7 @@ func TestRunQueryCommands(t *testing.T) {
 		{
 			name: "origin",
 			args: []string{"query", "origin", "AS16625", "--db", dbPath, "--family", "4"},
-			want: "23.32.0.0/11\n23.64.0.0/14\n",
+			want: "23.32.0.0/11\n23.64.0.0/14\n23.65.0.0/16\n",
 		},
 		{
 			name: "mnt-by",
@@ -223,7 +223,7 @@ func TestRunWhoisShimCommands(t *testing.T) {
 		{
 			name: "radb origin",
 			args: []string{"whois-shim", "--db", dbPath, "-h", "whois.radb.net", "--", "-i origin AS16625"},
-			want: "route:          23.64.0.0/14\n",
+			want: "route:          23.64.0.0/14\nroute:          23.65.0.0/16\n",
 		},
 		{
 			name: "ripe mnt-by",
@@ -484,6 +484,17 @@ func buildCommandDB(t *testing.T) string {
 	}})
 	if err != nil {
 		t.Fatalf("insert radb source: %v", err)
+	}
+
+	err = db.InsertRPSLSource("arin_irr", []rpsl.Object{{
+		Type:   "route",
+		Prefix: "23.65.0.0/16",
+		Attrs: map[string][]string{
+			"origin": {"AS16625"},
+		},
+	}})
+	if err != nil {
+		t.Fatalf("insert arin source: %v", err)
 	}
 
 	err = db.InsertRPSLSource("ripe_route6", []rpsl.Object{{

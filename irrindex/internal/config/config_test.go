@@ -62,6 +62,40 @@ sources:
 	}
 }
 
+func TestCommittedSourcesIncludeCurrentMirrorDumps(t *testing.T) {
+	cfg, err := LoadSources(filepath.Join("..", "..", "config", "sources.yaml"))
+	if err != nil {
+		t.Fatalf("LoadSources returned error: %v", err)
+	}
+
+	want := map[string]string{
+		"nttcom":     "https://rr1.ntt.net/nttcomRR/nttcom.db.gz",
+		"bgp_net_br": "https://ftp.bgp.net.br/tc.db.gz",
+	}
+	found := map[string]Source{}
+	for _, source := range cfg.Sources {
+		if _, ok := want[source.Name]; ok {
+			found[source.Name] = source
+		}
+	}
+
+	for name, url := range want {
+		source, ok := found[name]
+		if !ok {
+			t.Fatalf("committed sources missing %s", name)
+		}
+		if source.URL != url {
+			t.Fatalf("%s URL = %q, want %q", name, source.URL, url)
+		}
+		if source.Format != "rpsl" {
+			t.Fatalf("%s format = %q, want rpsl", name, source.Format)
+		}
+		if got := strings.Join(source.ObjectTypes, ","); got != "route,route6" {
+			t.Fatalf("%s object types = %q, want route,route6", name, got)
+		}
+	}
+}
+
 func TestLoadSourcesRejectsDuplicateNames(t *testing.T) {
 	path := writeFixture(t, "sources.yaml", `
 sources:

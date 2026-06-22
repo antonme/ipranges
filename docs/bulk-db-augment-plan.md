@@ -199,6 +199,14 @@ sources:
     url: "https://ftp.radb.net/radb/dbase/radb.db.gz"
     format: "rpsl"
     object_types: ["route", "route6"]
+  nttcom:
+    url: "https://rr1.ntt.net/nttcomRR/nttcom.db.gz"
+    format: "rpsl"
+    object_types: ["route", "route6"]
+  bgp_net_br:
+    url: "https://ftp.bgp.net.br/tc.db.gz"
+    format: "rpsl"
+    object_types: ["route", "route6"]
   arin_irr:
     url: "https://ftp.arin.net/pub/rr/arin.db.gz"
     format: "rpsl"
@@ -225,6 +233,7 @@ Deferred source set:
 
 - LACNIC DB: sampled `lacnic.db.gz` exposed `inetnum` records without `mnt-by` and no `route`/`route6`/`origin`/`mnt-by` lines in a direct scan, so defer until a useful public LACNIC IRR source is identified.
 - AFRINIC DB: add only after confirming fetch path, access constraints, and whether redistribution/use terms fit this project.
+- Rogers DB: `whois.rogerstelecom.net` is queried by current scripts, and TC lists `ROGERS` among mirrored databases, but no standalone Rogers HTTP(S) dump has been confirmed. Defer direct Rogers until either an HTTP(S) dump is found or object-level `source:` filtering lets `rogers` match `source: ROGERS` objects inside aggregate dumps.
 - RouteViews/RIS MRT: add only if RISWhois dumps and IRR dumps leave repeated important gaps.
 - ARIN Bulk Whois: do not add in this plan.
 

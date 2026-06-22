@@ -27,6 +27,14 @@ sources:
     url: "https://ftp.radb.net/radb/dbase/radb.db.gz"
     format: "rpsl"
     object_types: ["route", "route6"]
+  nttcom:
+    url: "https://rr1.ntt.net/nttcomRR/nttcom.db.gz"
+    format: "rpsl"
+    object_types: ["route", "route6"]
+  bgp_net_br:
+    url: "https://ftp.bgp.net.br/tc.db.gz"
+    format: "rpsl"
+    object_types: ["route", "route6"]
   arin_irr:
     url: "https://ftp.arin.net/pub/rr/arin.db.gz"
     format: "rpsl"

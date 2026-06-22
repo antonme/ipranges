@@ -12,6 +12,8 @@ import (
 	"testing"
 
 	"github.com/antonme/ipranges/irrindex/internal/query"
+	"github.com/antonme/ipranges/irrindex/internal/ris"
+	"github.com/antonme/ipranges/irrindex/internal/rpsl"
 	"github.com/antonme/ipranges/irrindex/internal/store"
 )
 
@@ -140,8 +142,86 @@ source:         RIPE
 	}
 }
 
+func TestRunQueryCommands(t *testing.T) {
+	dbPath := buildCommandDB(t)
+
+	for _, tc := range []struct {
+		name string
+		args []string
+		want string
+	}{
+		{
+			name: "origin",
+			args: []string{"query", "origin", "AS16625", "--db", dbPath, "--family", "4"},
+			want: "23.32.0.0/11\n23.64.0.0/14\n",
+		},
+		{
+			name: "mnt-by",
+			args: []string{"query", "mnt-by", "DATACAMP-MNT", "--db", dbPath, "--family", "6"},
+			want: "2001:db8::/32\n",
+		},
+		{
+			name: "empty",
+			args: []string{"query", "origin", "AS65500", "--db", dbPath, "--family", "4"},
+			want: "",
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var stdout, stderr bytes.Buffer
+
+			code := run(tc.args, &stdout, &stderr)
+
+			if code != 0 {
+				t.Fatalf("exit code = %d, want 0; stderr = %q", code, stderr.String())
+			}
+			if stdout.String() != tc.want {
+				t.Fatalf("stdout = %q, want %q", stdout.String(), tc.want)
+			}
+		})
+	}
+}
+
+func TestRunWhoisShimCommands(t *testing.T) {
+	dbPath := buildCommandDB(t)
+
+	for _, tc := range []struct {
+		name string
+		args []string
+		want string
+	}{
+		{
+			name: "radb origin",
+			args: []string{"whois-shim", "--db", dbPath, "-h", "whois.radb.net", "--", "-i origin AS16625"},
+			want: "route:          23.64.0.0/14\n",
+		},
+		{
+			name: "ripe mnt-by",
+			args: []string{"whois-shim", "--db", dbPath, "-h", "whois.ripe.net", "--", "-i mnt-by DATACAMP-MNT"},
+			want: "route6:         2001:db8::/32\n",
+		},
+		{
+			name: "empty",
+			args: []string{"whois-shim", "--db", dbPath, "-h", "whois.radb.net", "--", "-i origin AS65500"},
+			want: "",
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var stdout, stderr bytes.Buffer
+
+			code := run(tc.args, &stdout, &stderr)
+
+			if code != 0 {
+				t.Fatalf("exit code = %d, want 0; stderr = %q", code, stderr.String())
+			}
+			if stdout.String() != tc.want {
+				t.Fatalf("stdout = %q, want %q", stdout.String(), tc.want)
+			}
+		})
+	}
+}
+
 func TestRunKnownSubcommandsAreRecognizedButNotImplemented(t *testing.T) {
-	for _, subcommand := range []string{"verify", "query", "compare", "whois-shim"} {
+	for _, subcommand := range []string{"verify", "compare"} {
 		t.Run(subcommand, func(t *testing.T) {
 			var stdout, stderr bytes.Buffer
 
@@ -158,6 +238,52 @@ func TestRunKnownSubcommandsAreRecognizedButNotImplemented(t *testing.T) {
 			}
 		})
 	}
+}
+
+func buildCommandDB(t *testing.T) string {
+	t.Helper()
+
+	dbPath := filepath.Join(t.TempDir(), "test.db")
+	db, err := store.Open(dbPath)
+	if err != nil {
+		t.Fatalf("open db: %v", err)
+	}
+	defer db.Close()
+
+	err = db.InsertRPSLSource("radb", []rpsl.Object{{
+		Type:   "route",
+		Prefix: "23.64.0.0/14",
+		Attrs: map[string][]string{
+			"origin": {"AS16625"},
+			"mnt-by": {"AKAMAI-MNT"},
+		},
+	}})
+	if err != nil {
+		t.Fatalf("insert radb source: %v", err)
+	}
+
+	err = db.InsertRPSLSource("ripe_route6", []rpsl.Object{{
+		Type:   "route6",
+		Prefix: "2001:db8::/32",
+		Attrs: map[string][]string{
+			"origin": {"AS65536"},
+			"mnt-by": {"DATACAMP-MNT"},
+		},
+	}})
+	if err != nil {
+		t.Fatalf("insert ripe source: %v", err)
+	}
+
+	err = db.InsertRISSource("ris_ipv4", []ris.Record{{
+		ASN:       "AS16625",
+		Prefix:    "23.32.0.0/11",
+		PeerCount: 12,
+	}}, 4)
+	if err != nil {
+		t.Fatalf("insert ris source: %v", err)
+	}
+
+	return dbPath
 }
 
 func writeFile(t *testing.T, dir string, name string, body string) string {

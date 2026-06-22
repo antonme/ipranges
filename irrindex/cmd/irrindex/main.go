@@ -7,9 +7,11 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/antonme/ipranges/irrindex/internal/config"
 	"github.com/antonme/ipranges/irrindex/internal/fetch"
+	routequery "github.com/antonme/ipranges/irrindex/internal/query"
 	"github.com/antonme/ipranges/irrindex/internal/ris"
 	"github.com/antonme/ipranges/irrindex/internal/rpsl"
 	"github.com/antonme/ipranges/irrindex/internal/store"
@@ -46,6 +48,10 @@ func run(args []string, stdout, stderr io.Writer) int {
 		return runFetch(args[1:], stdout, stderr)
 	case "build":
 		return runBuild(args[1:], stdout, stderr)
+	case "query":
+		return runQuery(args[1:], stdout, stderr)
+	case "whois-shim":
+		return runWhoisShim(args[1:], stdout, stderr)
 	}
 
 	fmt.Fprintf(stderr, "%s is not implemented yet\n", subcommand)
@@ -54,6 +60,76 @@ func run(args []string, stdout, stderr io.Writer) int {
 
 func printUsage(w io.Writer) {
 	fmt.Fprintln(w, "Usage: irrindex <fetch|build|verify|query|compare|whois-shim> [options]")
+}
+
+func runQuery(args []string, stdout, stderr io.Writer) int {
+	if len(args) < 2 {
+		fmt.Fprintln(stderr, "Usage: irrindex query <origin|mnt-by> <value> --db <path> --family <4|6>")
+		return 2
+	}
+
+	kind := args[0]
+	value := args[1]
+	flags := flag.NewFlagSet("query", flag.ContinueOnError)
+	flags.SetOutput(stderr)
+	dbPath := flags.String("db", "irrindex.db", "SQLite DB path")
+	family := flags.Int("family", 4, "IP family")
+	if err := flags.Parse(args[2:]); err != nil {
+		return 2
+	}
+
+	db, err := store.Open(*dbPath)
+	if err != nil {
+		fmt.Fprintf(stderr, "open db: %v\n", err)
+		return 1
+	}
+	defer db.Close()
+
+	prefixes, err := queryPrefixes(db, kind, value, *family, nil)
+	if err != nil {
+		fmt.Fprintf(stderr, "query: %v\n", err)
+		return 1
+	}
+	printCIDRs(stdout, prefixes)
+	return 0
+}
+
+func runWhoisShim(args []string, stdout, stderr io.Writer) int {
+	flags := flag.NewFlagSet("whois-shim", flag.ContinueOnError)
+	flags.SetOutput(stderr)
+	dbPath := flags.String("db", "irrindex.db", "SQLite DB path")
+	host := flags.String("h", "", "whois host")
+	if err := flags.Parse(args); err != nil {
+		return 2
+	}
+
+	kind, value, err := parseWhoisQuery(flags.Args())
+	if err != nil {
+		fmt.Fprintf(stderr, "parse whois query: %v\n", err)
+		return 2
+	}
+
+	db, err := store.Open(*dbPath)
+	if err != nil {
+		fmt.Fprintf(stderr, "open db: %v\n", err)
+		return 1
+	}
+	defer db.Close()
+
+	sources, knownHost := sourceFiltersForHost(*host)
+	if *host != "" && !knownHost {
+		fmt.Fprintf(stderr, "warning: unknown whois host %q; querying all sources\n", *host)
+	}
+
+	for _, family := range []int{4, 6} {
+		prefixes, err := queryPrefixes(db, kind, value, family, sources)
+		if err != nil {
+			fmt.Fprintf(stderr, "query: %v\n", err)
+			return 1
+		}
+		printWhoisRoutes(stdout, prefixes)
+	}
+	return 0
 }
 
 func runFetch(args []string, stdout, stderr io.Writer) int {
@@ -130,6 +206,70 @@ func runBuild(args []string, stdout, stderr io.Writer) int {
 		return 1
 	}
 	return 0
+}
+
+func queryPrefixes(db *store.DB, kind string, value string, family int, sources []string) ([]string, error) {
+	switch kind {
+	case "origin":
+		return routequery.ByOrigin(db, value, family, sources)
+	case "mnt-by":
+		return routequery.ByMaintainer(db, value, family, sources)
+	default:
+		return nil, fmt.Errorf("unsupported query kind %q", kind)
+	}
+}
+
+func printCIDRs(stdout io.Writer, prefixes []string) {
+	for _, prefix := range prefixes {
+		fmt.Fprintln(stdout, prefix)
+	}
+}
+
+func printWhoisRoutes(stdout io.Writer, prefixes []string) {
+	for _, prefix := range prefixes {
+		label := "route:"
+		if strings.Contains(prefix, ":") {
+			label = "route6:"
+		}
+		fmt.Fprintf(stdout, "%-16s%s\n", label, prefix)
+	}
+}
+
+func parseWhoisQuery(args []string) (string, string, error) {
+	fields := strings.Fields(strings.Join(args, " "))
+	for i := 0; i+2 < len(fields); i++ {
+		if fields[i] != "-i" {
+			continue
+		}
+		kind := fields[i+1]
+		value := fields[i+2]
+		if kind != "origin" && kind != "mnt-by" {
+			return "", "", fmt.Errorf("unsupported inverse query %q", kind)
+		}
+		return kind, value, nil
+	}
+	return "", "", fmt.Errorf("expected -i <origin|mnt-by> <value>")
+}
+
+func sourceFiltersForHost(host string) ([]string, bool) {
+	switch strings.ToLower(strings.TrimSpace(host)) {
+	case "":
+		return nil, true
+	case "whois.radb.net":
+		return []string{"radb"}, true
+	case "whois.ripe.net":
+		return []string{"ripe", "ripe_route", "ripe_route6", "ripe_inetnum", "ripe_inet6num"}, true
+	case "riswhois.ripe.net":
+		return []string{"ris", "ris_ipv4", "ris_ipv6"}, true
+	case "rr.ntt.net":
+		return []string{"ntt", "nttcom", "nttcom_route", "nttcom_route6"}, true
+	case "whois.rogerstelecom.net":
+		return []string{"rogers", "rogerstelecom"}, true
+	case "whois.bgp.net.br":
+		return []string{"bgp_net_br", "bgp.net.br"}, true
+	default:
+		return nil, false
+	}
 }
 
 func buildSource(db *store.DB, source config.Source, path string) (int, error) {

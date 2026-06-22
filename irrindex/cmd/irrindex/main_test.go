@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/antonme/ipranges/irrindex/internal/config"
 	"github.com/antonme/ipranges/irrindex/internal/query"
 	"github.com/antonme/ipranges/irrindex/internal/ris"
 	"github.com/antonme/ipranges/irrindex/internal/rpsl"
@@ -217,6 +218,42 @@ func TestRunWhoisShimCommands(t *testing.T) {
 				t.Fatalf("stdout = %q, want %q", stdout.String(), tc.want)
 			}
 		})
+	}
+}
+
+func TestRunExtractQueriesWritesManifest(t *testing.T) {
+	dir := t.TempDir()
+	serviceDir := filepath.Join(dir, "sample")
+	if err := os.MkdirAll(serviceDir, 0o755); err != nil {
+		t.Fatalf("create service dir: %v", err)
+	}
+	writeFile(t, serviceDir, "downloader.sh", `get_routes() {
+    whois -h riswhois.ripe.net -- "-i origin $1" | rg '^route'
+    whois -h whois.radb.net -- "-i origin $1" | rg '^route'
+}
+get_routes 'AS16625'
+`)
+	outPath := filepath.Join(dir, "queries.yaml")
+	var stdout, stderr bytes.Buffer
+
+	code := run([]string{"extract-queries", "--repo", dir, "--out", outPath}, &stdout, &stderr)
+
+	if code != 0 {
+		t.Fatalf("exit code = %d, want 0; stderr = %q", code, stderr.String())
+	}
+	cfg, err := config.LoadQueries(outPath)
+	if err != nil {
+		t.Fatalf("LoadQueries generated manifest: %v", err)
+	}
+	if len(cfg.Queries) != 1 {
+		t.Fatalf("query count = %d, want 1", len(cfg.Queries))
+	}
+	got := cfg.Queries[0]
+	if got.Downloader != "sample" || got.Kind != "origin" || got.Value != "AS16625" {
+		t.Fatalf("query = %+v", got)
+	}
+	if !reflect.DeepEqual(got.Mirrors, []string{"ris", "radb"}) {
+		t.Fatalf("mirrors = %#v", got.Mirrors)
 	}
 }
 

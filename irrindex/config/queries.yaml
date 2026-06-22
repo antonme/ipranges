@@ -1,9 +1,1277 @@
 queries:
-  - downloader: akamai
-    kind: origin
-    value: AS16625
-    mirrors: ["ris", "radb", "arin_irr"]
-  - downloader: vpnhosts
-    kind: mnt-by
-    value: DATACAMP-MNT
-    mirrors: ["ripe", "radb"]
+    - downloader: M247
+      kind: origin
+      value: AS9009
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: adobe
+      kind: origin
+      value: AS15224
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: akamai
+      kind: origin
+      value: AS12222
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: akamai
+      kind: origin
+      value: AS16625
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: akamai
+      kind: origin
+      value: AS16702
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: akamai
+      kind: origin
+      value: AS17204
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: akamai
+      kind: origin
+      value: AS18680
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: akamai
+      kind: origin
+      value: AS18717
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: akamai
+      kind: origin
+      value: AS200005
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: akamai
+      kind: origin
+      value: AS20189
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: akamai
+      kind: origin
+      value: AS20940
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: akamai
+      kind: origin
+      value: AS21342
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: akamai
+      kind: origin
+      value: AS22207
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: akamai
+      kind: origin
+      value: AS22452
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: akamai
+      kind: origin
+      value: AS23454
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: akamai
+      kind: origin
+      value: AS23455
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: akamai
+      kind: origin
+      value: AS24319
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: akamai
+      kind: origin
+      value: AS26008
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: akamai
+      kind: origin
+      value: AS30675
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: akamai
+      kind: origin
+      value: AS32787
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: akamai
+      kind: origin
+      value: AS33047
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: akamai
+      kind: origin
+      value: AS34164
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: akamai
+      kind: origin
+      value: AS35993
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: akamai
+      kind: origin
+      value: AS35994
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: akamai
+      kind: origin
+      value: AS36183
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: akamai
+      kind: origin
+      value: AS393560
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: alibaba
+      kind: origin
+      value: AS134963
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: alibaba
+      kind: origin
+      value: AS203513
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: alibaba
+      kind: origin
+      value: AS24429
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: alibaba
+      kind: origin
+      value: AS37963
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: alibaba
+      kind: origin
+      value: AS45102
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: apple
+      kind: mnt-by
+      value: APPLE-MNT
+      mirrors:
+        - ripe
+        - radb
+        - ntt
+    - downloader: apple
+      kind: origin
+      value: AS6185
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: apple
+      kind: origin
+      value: AS714
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: avito
+      kind: mnt-by
+      value: MNT-AVITO
+      mirrors:
+        - ripe
+        - radb
+        - ntt
+    - downloader: backblaze
+      kind: origin
+      value: AS40401
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: beeline
+      kind: mnt-by
+      value: BEE-MNT
+      mirrors:
+        - ripe
+        - radb
+        - ntt
+    - downloader: beeline
+      kind: origin
+      value: AS16345
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: beeline
+      kind: origin
+      value: AS3216
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: cogent
+      kind: origin
+      value: AS1239
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: cogent
+      kind: origin
+      value: AS174
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: cogent
+      kind: origin
+      value: AS1790
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: cogent
+      kind: origin
+      value: AS1803
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: cogent
+      kind: origin
+      value: AS2149
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: cogent
+      kind: origin
+      value: AS4991
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: corbina
+      kind: mnt-by
+      value: RU-CORBINA-MNT
+      mirrors:
+        - ripe
+        - radb
+        - ntt
+    - downloader: edgecast
+      kind: origin
+      value: AS14153
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: edgecast
+      kind: origin
+      value: AS14210
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: edgecast
+      kind: origin
+      value: AS15133
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: expressvpn
+      kind: origin
+      value: AS206092
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: expressvpn
+      kind: origin
+      value: AS262287
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: expressvpn
+      kind: origin
+      value: AS37684
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: expressvpn
+      kind: origin
+      value: AS64286
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: facebook
+      kind: origin
+      value: AS149642
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: facebook
+      kind: origin
+      value: AS32934
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: facebook
+      kind: origin
+      value: AS54115
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: facebook
+      kind: origin
+      value: AS63293
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: hetzner
+      kind: origin
+      value: AS212317
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: hetzner
+      kind: origin
+      value: AS213230
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: hetzner
+      kind: origin
+      value: AS24940
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: hostinger
+      kind: mnt-by
+      value: MNT-HOSTINGER
+      mirrors:
+        - ripe
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: hostinger
+      kind: origin
+      value: AS47583
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: imperva
+      kind: origin
+      value: AS19551
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: imperva
+      kind: origin
+      value: AS62571
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: kinopub
+      kind: mnt-by
+      value: MELBICOM-MNT
+      mirrors:
+        - ripe
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: linkedin
+      kind: origin
+      value: AS13443
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: linkedin
+      kind: origin
+      value: AS14413
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: linkedin
+      kind: origin
+      value: AS40793
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: mts
+      kind: mnt-by
+      value: MGTS-MNT
+      mirrors:
+        - ripe
+        - radb
+        - ntt
+    - downloader: mts
+      kind: mnt-by
+      value: MGTS-USPD-MNT
+      mirrors:
+        - ripe
+        - radb
+        - ntt
+    - downloader: mts
+      kind: mnt-by
+      value: MTU-NOC
+      mirrors:
+        - ripe
+        - radb
+        - ntt
+    - downloader: mtscloud
+      kind: mnt-by
+      value: MNT-CLOUDMTS
+      mirrors:
+        - ripe
+        - radb
+        - ntt
+    - downloader: nordvpn
+      kind: origin
+      value: AS136787
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: ovh
+      kind: origin
+      value: AS16276
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: ovh
+      kind: origin
+      value: AS35540
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: ozonru
+      kind: mnt-by
+      value: OZONRU-MNT
+      mirrors:
+        - ripe
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: protonvpn
+      kind: origin
+      value: AS209103
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: qrator
+      kind: mnt-by
+      value: MNT-QRATOR
+      mirrors:
+        - ripe
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: rambler
+      kind: mnt-by
+      value: RAMBLER-MNT
+      mirrors:
+        - ripe
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: rostelecom
+      kind: mnt-by
+      value: ROSTELECOM-MNT
+      mirrors:
+        - ripe
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: rostelecom
+      kind: origin
+      value: AS28840
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: rostelecom
+      kind: origin
+      value: AS35807
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: rostelecom
+      kind: origin
+      value: AS42610
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: rugov
+      kind: mnt-by
+      value: FSS-MNT
+      mirrors:
+        - ripe
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: rugov
+      kind: mnt-by
+      value: INFR-MNT
+      mirrors:
+        - ripe
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: rugov
+      kind: mnt-by
+      value: ROSNIIROS-MNT
+      mirrors:
+        - ripe
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: rugov
+      kind: mnt-by
+      value: RUWEB-MNT-RIPE
+      mirrors:
+        - ripe
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: rugov
+      kind: mnt-by
+      value: SERVICEPIPE-MNT
+      mirrors:
+        - ripe
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: rugov
+      kind: mnt-by
+      value: TFGS-MNT
+      mirrors:
+        - ripe
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: rugov
+      kind: mnt-by
+      value: VGTRK-MNT
+      mirrors:
+        - ripe
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: rugov
+      kind: mnt-by
+      value: mnt-ru-servguru-1
+      mirrors:
+        - ripe
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: rugov
+      kind: origin
+      value: AS12389
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: rugov
+      kind: origin
+      value: AS199148
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: rugov
+      kind: origin
+      value: AS209030
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: rugov
+      kind: origin
+      value: AS33972
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: rugov
+      kind: origin
+      value: AS62268
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: rugov
+      kind: origin
+      value: AS8342
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: rugov
+      kind: origin
+      value: AS8901
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: sber
+      kind: mnt-by
+      value: PVBSBRF-MNT-RIPE
+      mirrors:
+        - ripe
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: sber
+      kind: mnt-by
+      value: SBRF-mnt
+      mirrors:
+        - ripe
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: surfshark
+      kind: origin
+      value: AS209854
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: telegram
+      kind: mnt-by
+      value: MNT-TELEGRAM
+      mirrors:
+        - ripe
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: telegram
+      kind: origin
+      value: AS211157
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: telegram
+      kind: origin
+      value: AS44907
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: telegram
+      kind: origin
+      value: AS59930
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: telegram
+      kind: origin
+      value: AS62041
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: tiktok
+      kind: origin
+      value: AS138699
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: twitter
+      kind: origin
+      value: AS13414
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: twitter
+      kind: origin
+      value: AS35995
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: twitter
+      kind: origin
+      value: AS54888
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: twitter
+      kind: origin
+      value: AS63179
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: vkontakte
+      kind: mnt-by
+      value: VKCOMPANY-MNT
+      mirrors:
+        - ripe
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: vpnhosts
+      kind: mnt-by
+      value: ALTUSHOST-MNT
+      mirrors:
+        - ripe
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: vpnhosts
+      kind: mnt-by
+      value: CLOUVIDER-MNT
+      mirrors:
+        - ripe
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: vpnhosts
+      kind: mnt-by
+      value: CYBERZONEHUB-MNT
+      mirrors:
+        - ripe
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: vpnhosts
+      kind: mnt-by
+      value: DATACAMP-MNT
+      mirrors:
+        - ripe
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: vpnhosts
+      kind: mnt-by
+      value: ESAB-MNT
+      mirrors:
+        - ripe
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: vpnhosts
+      kind: mnt-by
+      value: GLOBALAXS-MNT
+      mirrors:
+        - ripe
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: vpnhosts
+      kind: mnt-by
+      value: HYDRA-MNT
+      mirrors:
+        - ripe
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: vpnhosts
+      kind: mnt-by
+      value: MAINT-GSLNETWORKS-AU
+      mirrors:
+        - ripe
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: vpnhosts
+      kind: mnt-by
+      value: MAINT-HOSTROYALETECHNOLOGIES-IN
+      mirrors:
+        - ripe
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: vpnhosts
+      kind: mnt-by
+      value: MAINT-OWL-VU
+      mirrors:
+        - ripe
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: vpnhosts
+      kind: mnt-by
+      value: MNT-HOSTINGINSIDE
+      mirrors:
+        - ripe
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: vpnhosts
+      kind: mnt-by
+      value: MNT-NFORCE
+      mirrors:
+        - ripe
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: vpnhosts
+      kind: mnt-by
+      value: MNT-WORLDSTREAM
+      mirrors:
+        - ripe
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: vpnhosts
+      kind: mnt-by
+      value: NUXTCLOUD-MNT
+      mirrors:
+        - ripe
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: vpnhosts
+      kind: mnt-by
+      value: OVH-MNT
+      mirrors:
+        - ripe
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: vpnhosts
+      kind: mnt-by
+      value: QWARTA-MNT
+      mirrors:
+        - ripe
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: vpnhosts
+      kind: mnt-by
+      value: UKSERVERS-MNT
+      mirrors:
+        - ripe
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: vpnhosts
+      kind: mnt-by
+      value: de-buechvps1-1-mnt
+      mirrors:
+        - ripe
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: vpnhosts
+      kind: mnt-by
+      value: de-kiservices-1-mnt
+      mirrors:
+        - ripe
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: vpnhosts
+      kind: mnt-by
+      value: fribourg-mnt
+      mirrors:
+        - ripe
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: vpnhosts
+      kind: mnt-by
+      value: mnt-de-itmbuechele-1
+      mirrors:
+        - ripe
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: vpnhosts
+      kind: origin
+      value: AS16276
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: vpnhosts
+      kind: origin
+      value: AS206092
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: vpnhosts
+      kind: origin
+      value: AS39351
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: vpnhosts
+      kind: origin
+      value: AS60068
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: vpnhosts
+      kind: origin
+      value: AS64286
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: yahoo
+      kind: mnt-by
+      value: YAHOO-MNT
+      mirrors:
+        - ripe
+        - radb
+        - ntt
+    - downloader: yahoo
+      kind: origin
+      value: AS10310
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: yahoo
+      kind: origin
+      value: AS26101
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: yahoo
+      kind: origin
+      value: AS36646
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: yandex
+      kind: mnt-by
+      value: YANDEX-MNT
+      mirrors:
+        - ripe
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: yandexcloud
+      kind: mnt-by
+      value: mnt-ru-yandexcloud-1
+      mirrors:
+        - ripe
+        - radb
+        - ntt

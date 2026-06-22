@@ -11,6 +11,7 @@ import (
 
 	"github.com/antonme/ipranges/irrindex/internal/config"
 	"github.com/antonme/ipranges/irrindex/internal/fetch"
+	"github.com/antonme/ipranges/irrindex/internal/manifest"
 	routequery "github.com/antonme/ipranges/irrindex/internal/query"
 	"github.com/antonme/ipranges/irrindex/internal/ris"
 	"github.com/antonme/ipranges/irrindex/internal/rpsl"
@@ -18,12 +19,13 @@ import (
 )
 
 var subcommands = map[string]struct{}{
-	"fetch":      {},
-	"build":      {},
-	"verify":     {},
-	"query":      {},
-	"compare":    {},
-	"whois-shim": {},
+	"fetch":           {},
+	"build":           {},
+	"verify":          {},
+	"query":           {},
+	"compare":         {},
+	"whois-shim":      {},
+	"extract-queries": {},
 }
 
 func main() {
@@ -52,6 +54,8 @@ func run(args []string, stdout, stderr io.Writer) int {
 		return runQuery(args[1:], stdout, stderr)
 	case "whois-shim":
 		return runWhoisShim(args[1:], stdout, stderr)
+	case "extract-queries":
+		return runExtractQueries(args[1:], stdout, stderr)
 	}
 
 	fmt.Fprintf(stderr, "%s is not implemented yet\n", subcommand)
@@ -59,7 +63,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 }
 
 func printUsage(w io.Writer) {
-	fmt.Fprintln(w, "Usage: irrindex <fetch|build|verify|query|compare|whois-shim> [options]")
+	fmt.Fprintln(w, "Usage: irrindex <fetch|build|verify|query|compare|whois-shim|extract-queries> [options]")
 }
 
 func runQuery(args []string, stdout, stderr io.Writer) int {
@@ -129,6 +133,28 @@ func runWhoisShim(args []string, stdout, stderr io.Writer) int {
 		}
 		printWhoisRoutes(stdout, prefixes)
 	}
+	return 0
+}
+
+func runExtractQueries(args []string, stdout, stderr io.Writer) int {
+	flags := flag.NewFlagSet("extract-queries", flag.ContinueOnError)
+	flags.SetOutput(stderr)
+	repoRoot := flags.String("repo", ".", "repository root")
+	outPath := flags.String("out", "irrindex/config/queries.yaml", "output queries YAML")
+	if err := flags.Parse(args); err != nil {
+		return 2
+	}
+
+	specs, err := manifest.ExtractQueries(*repoRoot)
+	if err != nil {
+		fmt.Fprintf(stderr, "extract queries: %v\n", err)
+		return 1
+	}
+	if err := manifest.WriteQueriesYAML(*outPath, specs); err != nil {
+		fmt.Fprintf(stderr, "write queries: %v\n", err)
+		return 1
+	}
+	fmt.Fprintf(stdout, "wrote %d queries to %s\n", len(specs), *outPath)
 	return 0
 }
 

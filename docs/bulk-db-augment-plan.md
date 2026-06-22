@@ -211,14 +211,19 @@ sources:
     url: "https://ftp.apnic.net/apnic/whois/apnic.db.route6.gz"
     format: "rpsl"
     object_types: ["route6"]
-  lacnic:
-    url: "https://ftp.lacnic.net/lacnic/dbase/lacnic.db.gz"
+  apnic_inetnum:
+    url: "https://ftp.apnic.net/apnic/whois/apnic.db.inetnum.gz"
     format: "rpsl"
-    object_types: ["route", "route6"]
+    object_types: ["inetnum"]
+  apnic_inet6num:
+    url: "https://ftp.apnic.net/apnic/whois/apnic.db.inet6num.gz"
+    format: "rpsl"
+    object_types: ["inet6num"]
 ```
 
 Deferred source set:
 
+- LACNIC DB: sampled `lacnic.db.gz` exposed `inetnum` records without `mnt-by` and no `route`/`route6`/`origin`/`mnt-by` lines in a direct scan, so defer until a useful public LACNIC IRR source is identified.
 - AFRINIC DB: add only after confirming fetch path, access constraints, and whether redistribution/use terms fit this project.
 - RouteViews/RIS MRT: add only if RISWhois dumps and IRR dumps leave repeated important gaps.
 - ARIN Bulk Whois: do not add in this plan.
@@ -285,7 +290,7 @@ Important parsing rules:
 - `inetnum` and `inet6num` create maintainer-keyed rows after range-to-CIDR conversion.
 - `riswhois` rows create origin-AS rows with no maintainer.
 - Drop default routes during build and report how many were dropped.
-- Store source names in normalized form such as `ripe`, `radb`, `arin_irr`, `apnic`, `lacnic`, `ris`.
+- Store source names in normalized form such as `ripe`, `radb`, `arin_irr`, `apnic`, and `ris`.
 
 ## CLI Contract
 
@@ -377,7 +382,7 @@ Compare these options on 20-object samples from RIPE, RADb, ARIN IRR, APNIC, and
 - `github.com/frederic-arr/rpsl-go`
 - IRRd parser behavior through a small local IRRd fixture if available
 
-Write the result to `docs/research/2026-06-22-rpsl-parser-spike.md` with a recommendation. The default recommendation remains the minimal Go parser only if it correctly preserves repeated attributes, continuation lines, route/route6 prefixes, origin ASNs, `mnt-by`, and inetnum ranges for all samples.
+Write the result to `docs/research/2026-06-22-rpsl-parser-spike.md` with a recommendation. The default recommendation remains the minimal Go parser only if it correctly preserves repeated attributes, continuation lines, route/route6 prefixes, origin ASNs, `mnt-by`, inetnum ranges, and invalid/non-UTF-8 text handling for all useful samples. If a public source lacks `route`/`mnt-by` fields, document that as a source-suitability issue rather than a parser failure.
 
 - [ ] **Step 2: Write parser tests**
 

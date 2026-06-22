@@ -82,6 +82,132 @@ func TestBuildReportLocalIncludesLive(t *testing.T) {
 	}
 }
 
+func TestBuildReportTreatsLocalSupernetAsCoveringLivePrefixes(t *testing.T) {
+	repoRoot := t.TempDir()
+	writeText(t, filepath.Join(repoRoot, "sample", "ipv4.txt"), "10.0.0.0/24\n10.0.1.0/24\n")
+
+	db, err := store.Open(filepath.Join(t.TempDir(), "index.db"))
+	if err != nil {
+		t.Fatalf("Open returned error: %v", err)
+	}
+	defer db.Close()
+
+	err = db.InsertRPSLSource("radb", []rpsl.Object{{
+		Type:   "route",
+		Prefix: "10.0.0.0/23",
+		Attrs:  map[string][]string{"origin": {"AS64500"}},
+	}})
+	if err != nil {
+		t.Fatalf("InsertRPSLSource returned error: %v", err)
+	}
+
+	report, err := BuildReport(repoRoot, []config.Query{{
+		Downloader: "sample",
+		Kind:       "origin",
+		Value:      "AS64500",
+		Mirrors:    []string{"radb"},
+	}}, db)
+	if err != nil {
+		t.Fatalf("BuildReport returned error: %v", err)
+	}
+
+	service := report.Services[0]
+	if service.Status != "equal_coverage" {
+		t.Fatalf("status = %q, want equal_coverage", service.Status)
+	}
+	if service.LiveOnlyCount != 0 {
+		t.Fatalf("live_only_count = %d, want 0; live_only = %#v", service.LiveOnlyCount, service.LiveOnly)
+	}
+	if service.LocalOnlyCount != 0 {
+		t.Fatalf("local_only_count = %d, want 0; local_only = %#v", service.LocalOnlyCount, service.LocalOnly)
+	}
+}
+
+func TestBuildReportReportsOnlyUncoveredLiveAddressSpace(t *testing.T) {
+	repoRoot := t.TempDir()
+	writeText(t, filepath.Join(repoRoot, "sample", "ipv4.txt"), "10.0.0.0/23\n")
+
+	db, err := store.Open(filepath.Join(t.TempDir(), "index.db"))
+	if err != nil {
+		t.Fatalf("Open returned error: %v", err)
+	}
+	defer db.Close()
+
+	err = db.InsertRPSLSource("radb", []rpsl.Object{{
+		Type:   "route",
+		Prefix: "10.0.0.0/24",
+		Attrs:  map[string][]string{"origin": {"AS64500"}},
+	}})
+	if err != nil {
+		t.Fatalf("InsertRPSLSource returned error: %v", err)
+	}
+
+	report, err := BuildReport(repoRoot, []config.Query{{
+		Downloader: "sample",
+		Kind:       "origin",
+		Value:      "AS64500",
+		Mirrors:    []string{"radb"},
+	}}, db)
+	if err != nil {
+		t.Fatalf("BuildReport returned error: %v", err)
+	}
+
+	service := report.Services[0]
+	if service.Status != "live_only_missing" {
+		t.Fatalf("status = %q, want live_only_missing", service.Status)
+	}
+	if service.LiveOnlyCount != 1 {
+		t.Fatalf("live_only_count = %d, want 1; live_only = %#v", service.LiveOnlyCount, service.LiveOnly)
+	}
+	if len(service.LiveOnly) != 1 || service.LiveOnly[0] != "10.0.1.0/24" {
+		t.Fatalf("live_only = %#v, want [10.0.1.0/24]", service.LiveOnly)
+	}
+	if service.LocalOnlyCount != 0 {
+		t.Fatalf("local_only_count = %d, want 0; local_only = %#v", service.LocalOnlyCount, service.LocalOnly)
+	}
+}
+
+func TestBuildReportTreatsIPv6SupernetAsCoveringLivePrefixes(t *testing.T) {
+	repoRoot := t.TempDir()
+	writeText(t, filepath.Join(repoRoot, "sample", "ipv6.txt"), "2001:db8::/127\n2001:db8::2/127\n")
+
+	db, err := store.Open(filepath.Join(t.TempDir(), "index.db"))
+	if err != nil {
+		t.Fatalf("Open returned error: %v", err)
+	}
+	defer db.Close()
+
+	err = db.InsertRPSLSource("radb", []rpsl.Object{{
+		Type:   "route6",
+		Prefix: "2001:db8::/126",
+		Attrs:  map[string][]string{"origin": {"AS64500"}},
+	}})
+	if err != nil {
+		t.Fatalf("InsertRPSLSource returned error: %v", err)
+	}
+
+	report, err := BuildReport(repoRoot, []config.Query{{
+		Downloader: "sample",
+		Kind:       "origin",
+		Value:      "AS64500",
+		Mirrors:    []string{"radb"},
+	}}, db)
+	if err != nil {
+		t.Fatalf("BuildReport returned error: %v", err)
+	}
+
+	service := report.Services[0]
+	if service.Status != "equal_coverage" {
+		t.Fatalf("status = %q, want equal_coverage", service.Status)
+	}
+	if service.LiveOnlyCount != 0 {
+		t.Fatalf("live_only_count = %d, want 0; live_only = %#v", service.LiveOnlyCount, service.LiveOnly)
+	}
+	if service.LocalOnlyCount != 0 {
+		t.Fatalf("local_only_count = %d, want 0; local_only = %#v", service.LocalOnlyCount, service.LocalOnly)
+	}
+}
+
 func TestBuildReportReportsInvalidLiveLines(t *testing.T) {
 	repoRoot := t.TempDir()
 	writeText(t, filepath.Join(repoRoot, "sample", "ipv4.txt"), "Something went wrong\n10.0.0.0/24\n")

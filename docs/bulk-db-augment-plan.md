@@ -833,6 +833,21 @@ git commit -m "feat: capture downloader query manifest"
 - Consumes: `queries.yaml`, SQLite DB, current `*/ipv4.txt` and `*/ipv6.txt`
 - Produces: `comparison.md`
 - Produces: `comparison.json`
+- Scope: configured local queries compared with committed downloader outputs.
+- Difference metric: CIDR address-space coverage, not exact prefix-line equality.
+
+Important comparison boundary: many downloaders union WHOIS/IRR results with
+vendor APIs, geofeeds, ARIN org-net results, DNS-derived lists, and hand-maintained
+files. `compare` must not be interpreted as final replacement evidence for those
+mixed downloaders unless those extra sources are also represented. It answers:
+"does the configured local query set cover the committed final output?"
+
+For apples-to-apples replacement evidence, add a separate shadow-run mode later:
+run the same downloader with local WHOIS queries via `whois-shim`, preserve the
+same non-WHOIS downloader additions, and compare final output coverage to the
+current final output. Alternatively, instrument downloaders to emit a raw
+WHOIS-only component file and compare local query coverage against that component
+instead of the final union.
 
 - [ ] **Step 1: Write comparison tests**
 
@@ -856,7 +871,10 @@ Expected: FAIL because comparison is missing.
 
 - [ ] **Step 3: Implement comparison engine**
 
-Normalize CIDRs exactly enough for set comparison. Do not mutate service outputs. Write markdown tables sorted by worst `live_only_count` first.
+Normalize CIDRs into address-space sets before subtracting one side from the
+other. Do not compare exact text lines: aggregates such as `38.0.0.0/8` cover
+their more-specific children. Do not mutate service outputs. Write markdown
+tables sorted by worst `live_only_count` first.
 
 - [ ] **Step 4: Run comparison tests**
 

@@ -1,0 +1,49 @@
+sources:
+  ris_ipv4:
+    url: "https://www.ris.ripe.net/dumps/riswhoisdump.IPv4.gz"
+    format: "riswhois"
+    family: 4
+  ris_ipv6:
+    url: "https://www.ris.ripe.net/dumps/riswhoisdump.IPv6.gz"
+    format: "riswhois"
+    family: 6
+  ripe_route:
+    url: "https://ftp.ripe.net/ripe/dbase/split/ripe.db.route.gz"
+    format: "rpsl"
+    object_types: ["route"]
+  ripe_route6:
+    url: "https://ftp.ripe.net/ripe/dbase/split/ripe.db.route6.gz"
+    format: "rpsl"
+    object_types: ["route6"]
+  ripe_inetnum:
+    url: "https://ftp.ripe.net/ripe/dbase/split/ripe.db.inetnum.gz"
+    format: "rpsl"
+    object_types: ["inetnum"]
+  ripe_inet6num:
+    url: "https://ftp.ripe.net/ripe/dbase/split/ripe.db.inet6num.gz"
+    format: "rpsl"
+    object_types: ["inet6num"]
+  radb:
+    url: "https://ftp.radb.net/radb/dbase/radb.db.gz"
+    format: "rpsl"
+    object_types: ["route", "route6"]
+  arin_irr:
+    url: "https://ftp.arin.net/pub/rr/arin.db.gz"
+    format: "rpsl"
+    object_types: ["route", "route6"]
+  apnic_route:
+    url: "https://ftp.apnic.net/apnic/whois/apnic.db.route.gz"
+    format: "rpsl"
+    object_types: ["route"]
+  apnic_route6:
+    url: "https://ftp.apnic.net/apnic/whois/apnic.db.route6.gz"
+    format: "rpsl"
+    object_types: ["route6"]
+  apnic_inetnum:
+    url: "https://ftp.apnic.net/apnic/whois/apnic.db.inetnum.gz"
+    format: "rpsl"
+    object_types: ["inetnum"]
+  apnic_inet6num:
+    url: "https://ftp.apnic.net/apnic/whois/apnic.db.inet6num.gz"
+    format: "rpsl"
+    object_types: ["inet6num"]

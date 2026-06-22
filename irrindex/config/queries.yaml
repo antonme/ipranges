@@ -1,0 +1,9 @@
+queries:
+  - downloader: akamai
+    kind: origin
+    value: AS16625
+    mirrors: ["ris", "radb", "arin_irr"]
+  - downloader: vpnhosts
+    kind: mnt-by
+    value: DATACAMP-MNT
+    mirrors: ["ripe", "radb"]

@@ -309,6 +309,7 @@ type shadowRunOptions struct {
 	dbPath      string
 	outDir      string
 	irrindexBin string
+	cacheDir    string
 	downloaders []string
 }
 
@@ -326,6 +327,7 @@ func runShadowRun(args []string, stdout, stderr io.Writer) int {
 	dbPath := flags.String("db", "irrindex.db", "SQLite DB path")
 	outDir := flags.String("out", "shadow-run-report", "output directory")
 	irrindexBin := flags.String("irrindex-bin", "", "irrindex executable path")
+	cacheDir := flags.String("cache-dir", "", "optional cached curl/whois response directory")
 	var downloaders downloaderFlag
 	flags.Var(&downloaders, "downloader", "downloader name; may be repeated or comma-separated")
 	if err := flags.Parse(args); err != nil {
@@ -341,6 +343,7 @@ func runShadowRun(args []string, stdout, stderr io.Writer) int {
 		dbPath:      *dbPath,
 		outDir:      *outDir,
 		irrindexBin: *irrindexBin,
+		cacheDir:    *cacheDir,
 		downloaders: append([]string(nil), downloaders...),
 	})
 	if err != nil {
@@ -366,6 +369,13 @@ func runShadowDownloaders(opts shadowRunOptions) (shadowRunResult, error) {
 	outDir, err := filepath.Abs(opts.outDir)
 	if err != nil {
 		return shadowRunResult{}, fmt.Errorf("resolve output dir: %w", err)
+	}
+	cacheDir := opts.cacheDir
+	if cacheDir != "" {
+		cacheDir, err = filepath.Abs(cacheDir)
+		if err != nil {
+			return shadowRunResult{}, fmt.Errorf("resolve cache dir: %w", err)
+		}
 	}
 	irrindexBin := opts.irrindexBin
 	if irrindexBin == "" {
@@ -400,7 +410,11 @@ func runShadowDownloaders(opts shadowRunOptions) (shadowRunResult, error) {
 		return shadowRunResult{}, fmt.Errorf("create shim dir: %w", err)
 	}
 	realWhois, _ := exec.LookPath("whois")
+	realCurl, _ := exec.LookPath("curl")
 	if err := writeWhoisShim(filepath.Join(shimDir, "whois")); err != nil {
+		return shadowRunResult{}, err
+	}
+	if err := writeCurlShim(filepath.Join(shimDir, "curl")); err != nil {
 		return shadowRunResult{}, err
 	}
 
@@ -425,6 +439,8 @@ func runShadowDownloaders(opts shadowRunOptions) (shadowRunResult, error) {
 		"IRRINDEX_BIN="+irrindexBin,
 		"IRRINDEX_DB="+dbPath,
 		"REAL_WHOIS="+realWhois,
+		"REAL_CURL="+realCurl,
+		"SHADOW_RESPONSE_CACHE_DIR="+cacheDir,
 	)
 	for _, downloader := range opts.downloaders {
 		cmd := exec.Command("bash", filepath.Join(downloader, "downloader.sh"))
@@ -461,14 +477,32 @@ func validateDownloaderName(name string) error {
 
 func writeWhoisShim(path string) error {
 	body := `#!/bin/sh
+cache_key() {
+  printf '%s' "$1" | sed 's/[^A-Za-z0-9._-]/_/g'
+}
+
+host=""
 if [ "$1" = "-h" ]; then
-  case "$2" in
+  host="$2"
+  shift 2
+  case "$host" in
     riswhois.ripe.net|whois.radb.net|whois.ripe.net|rr.ntt.net|whois.rogerstelecom.net|whois.bgp.net.br)
-      exec "${IRRINDEX_BIN}" whois-shim --db "${IRRINDEX_DB}" "$@"
+      exec "${IRRINDEX_BIN}" whois-shim --db "${IRRINDEX_DB}" -h "$host" "$@"
       ;;
   esac
+  if [ -n "${SHADOW_RESPONSE_CACHE_DIR}" ]; then
+    key="$(cache_key "${host}_$*")"
+    cache_file="${SHADOW_RESPONSE_CACHE_DIR}/whois/${key}"
+    if [ -f "${cache_file}" ]; then
+      cat "${cache_file}"
+      exit 0
+    fi
+  fi
 fi
 if [ -n "${REAL_WHOIS}" ]; then
+  if [ -n "${host}" ]; then
+    exec "${REAL_WHOIS}" -h "$host" "$@"
+  fi
   exec "${REAL_WHOIS}" "$@"
 fi
 echo "no real whois available for: $*" >&2
@@ -476,6 +510,52 @@ exit 127
 `
 	if err := os.WriteFile(path, []byte(body), 0o755); err != nil {
 		return fmt.Errorf("write whois shim: %w", err)
+	}
+	return nil
+}
+
+func writeCurlShim(path string) error {
+	body := `#!/bin/sh
+cache_key() {
+  printf '%s' "$1" | sed 's/[^A-Za-z0-9._-]/_/g'
+}
+
+if [ -n "${SHADOW_RESPONSE_CACHE_DIR}" ]; then
+  saw_url=0
+  all_cached=1
+  for arg in "$@"; do
+    case "$arg" in
+      http://*|https://*|ftp://*)
+        saw_url=1
+        key="$(cache_key "${arg}")"
+        cache_file="${SHADOW_RESPONSE_CACHE_DIR}/curl/${key}"
+        if [ ! -f "${cache_file}" ]; then
+          all_cached=0
+        fi
+        ;;
+    esac
+  done
+  if [ "${saw_url}" = "1" ] && [ "${all_cached}" = "1" ]; then
+    for arg in "$@"; do
+      case "$arg" in
+        http://*|https://*|ftp://*)
+          key="$(cache_key "${arg}")"
+          cat "${SHADOW_RESPONSE_CACHE_DIR}/curl/${key}"
+          ;;
+      esac
+    done
+    exit 0
+  fi
+fi
+
+if [ -n "${REAL_CURL}" ]; then
+  exec "${REAL_CURL}" "$@"
+fi
+echo "no real curl available for: $*" >&2
+exit 127
+`
+	if err := os.WriteFile(path, []byte(body), 0o755); err != nil {
+		return fmt.Errorf("write curl shim: %w", err)
 	}
 	return nil
 }

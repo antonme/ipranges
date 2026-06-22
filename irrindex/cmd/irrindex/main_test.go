@@ -347,11 +347,12 @@ func TestRunShadowRunComparesDownloaderOutputWithLocalWhoisShim(t *testing.T) {
 	}
 	writeFile(t, serviceDir, "downloader.sh", `#!/bin/bash
 set -euo pipefail
-whois -h whois.apnic.net "TAOBAO" > sample/ipv4.txt
+curl -fsS --retry 3 https://geofeed.cogentco.com/geofeed.csv https://example.invalid/extra-geofeed.csv | cut -d',' -f1 > sample/ipv4.txt
+whois -h whois.apnic.net "TAOBAO" >> sample/ipv4.txt
 whois -h whois.radb.net -- "-i origin AS64500" | awk '/^route/ { print $2; }' >> sample/ipv4.txt
-echo "203.0.113.0/24" >> sample/ipv4.txt
+echo "192.0.2.0/24" >> sample/ipv4.txt
 `)
-	writeFile(t, serviceDir, "ipv4.txt", "10.0.0.0/24\n10.0.1.0/24\n198.51.100.0/24\n203.0.113.0/24\n")
+	writeFile(t, serviceDir, "ipv4.txt", "10.0.0.0/24\n10.0.1.0/24\n172.16.0.0/24\n192.0.2.0/24\n198.51.100.0/24\n203.0.113.0/24\n")
 	writeFile(t, serviceDir, "ipv6.txt", "")
 
 	fakeIrrindex := writeExecutable(t, dir, "fake-irrindex", `#!/bin/sh
@@ -372,14 +373,25 @@ printf 'route:          10.0.0.0/23\n'
 		t.Fatalf("create real-bin: %v", err)
 	}
 	writeExecutable(t, realBin, "whois", `#!/bin/sh
-if [ "$1" = "-h" ] && [ "$2" = "whois.apnic.net" ]; then
-  printf '198.51.100.0/24\n'
-  exit 0
-fi
 echo "unexpected real whois: $*" >&2
 exit 4
 `)
+	writeExecutable(t, realBin, "curl", `#!/bin/sh
+echo "unexpected real curl: $*" >&2
+exit 5
+`)
 	t.Setenv("PATH", realBin+string(os.PathListSeparator)+os.Getenv("PATH"))
+
+	cacheDir := filepath.Join(dir, "response-cache")
+	if err := os.MkdirAll(filepath.Join(cacheDir, "curl"), 0o755); err != nil {
+		t.Fatalf("create curl cache dir: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Join(cacheDir, "whois"), 0o755); err != nil {
+		t.Fatalf("create whois cache dir: %v", err)
+	}
+	writeFile(t, filepath.Join(cacheDir, "curl"), "https___geofeed.cogentco.com_geofeed.csv", "203.0.113.0/24,ZZ,ZZ,Example\n")
+	writeFile(t, filepath.Join(cacheDir, "curl"), "https___example.invalid_extra-geofeed.csv", "172.16.0.0/24,ZZ,ZZ,Example\n")
+	writeFile(t, filepath.Join(cacheDir, "whois"), "whois.apnic.net_TAOBAO", "198.51.100.0/24\n")
 
 	outDir := filepath.Join(dir, "shadow-report")
 	var stdout, stderr bytes.Buffer
@@ -390,6 +402,7 @@ exit 4
 		"--downloader", "sample",
 		"--db", filepath.Join(dir, "index.db"),
 		"--irrindex-bin", fakeIrrindex,
+		"--cache-dir", cacheDir,
 		"--out", outDir,
 	}, &stdout, &stderr)
 
@@ -401,7 +414,7 @@ exit 4
 	if err != nil {
 		t.Fatalf("read original ipv4: %v", err)
 	}
-	if string(original) != "10.0.0.0/24\n10.0.1.0/24\n198.51.100.0/24\n203.0.113.0/24\n" {
+	if string(original) != "10.0.0.0/24\n10.0.1.0/24\n172.16.0.0/24\n192.0.2.0/24\n198.51.100.0/24\n203.0.113.0/24\n" {
 		t.Fatalf("original ipv4 mutated: %q", original)
 	}
 

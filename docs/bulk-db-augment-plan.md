@@ -981,19 +981,38 @@ irrindex shadow-run \
   --downloader cogent \
   --db "$RUNNER_TEMP/irrindex.db" \
   --irrindex-bin ./irrindex-bin \
+  --cache-dir "$RUNNER_TEMP/shadow-response-cache" \
   --out "$RUNNER_TEMP/irr-shadow-run"
 ```
 
 The command should:
 
 - copy only the selected downloader folder and `utils/` into an isolated work dir
-- prepend a generated `whois` wrapper to `PATH`
+- prepend generated `whois` and `curl` wrappers to `PATH`
 - send modeled WHOIS hosts (`riswhois.ripe.net`, RADb, RIPE, NTT, Rogers, and `bgp.net.br`) through `irrindex whois-shim`
-- forward unknown WHOIS hosts, such as APNIC lookups, to the real system `whois`
+- serve cached `curl` responses when present, especially slow geofeeds
+- serve cached unknown-WHOIS responses when present, such as APNIC lookups
+- forward cache misses for unknown WHOIS and uncached URLs to the real system commands
 - run the original downloader script with the same cwd convention as CI
 - compare committed output files against shadow output files by CIDR coverage
 - write `comparison.json`, `comparison.md`, and `downloaders.log`
 - leave committed `*/ipv4.txt` and `*/ipv6.txt` untouched
+
+Cache file names are sanitized request strings where non `[A-Za-z0-9._-]`
+characters become `_`.
+
+Examples:
+
+```text
+curl/https___geofeed.cogentco.com_geofeed.csv
+whois/whois.apnic.net_TAOBAO
+```
+
+Modeled WHOIS hosts must bypass this cache and query the local DB; the cache is
+for non-WHOIS feeds and not-yet-modeled WHOIS calls so replacement tests are not
+dominated by slow or flaky external endpoints. A `curl` command with several URL
+arguments should be served from cache only when all of those URLs are cached; the
+wrapper then emits the cached bodies in URL argument order.
 
 Initial local Cogent probe using the clean shadow DB:
 

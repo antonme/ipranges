@@ -18,7 +18,10 @@ import (
 	"github.com/antonme/ipranges/irrindex/internal/store"
 )
 
-const comparisonScope = "local_query_results_vs_committed_downloader_outputs"
+const (
+	queryComparisonScope  = "local_query_results_vs_committed_downloader_outputs"
+	shadowComparisonScope = "shadow_whois_output_vs_committed_downloader_outputs"
+)
 
 type Report struct {
 	ComparisonScope string          `json:"comparison_scope"`
@@ -45,7 +48,7 @@ func BuildReport(repoRoot string, queries []config.Query, db *store.DB) (Report,
 	}
 
 	report := Report{
-		ComparisonScope: comparisonScope,
+		ComparisonScope: queryComparisonScope,
 		Services:        make([]ServiceReport, 0, len(byDownloader)),
 	}
 	for downloader, downloaderQueries := range byDownloader {
@@ -64,16 +67,45 @@ func BuildReport(repoRoot string, queries []config.Query, db *store.DB) (Report,
 		report.Services = append(report.Services, serviceReport)
 	}
 
-	sort.Slice(report.Services, func(i, j int) bool {
-		if report.Services[i].LiveOnlyCount != report.Services[j].LiveOnlyCount {
-			return report.Services[i].LiveOnlyCount > report.Services[j].LiveOnlyCount
-		}
-		if report.Services[i].InvalidLiveCount != report.Services[j].InvalidLiveCount {
-			return report.Services[i].InvalidLiveCount > report.Services[j].InvalidLiveCount
-		}
-		return report.Services[i].Downloader < report.Services[j].Downloader
-	})
+	sortServiceReports(report.Services)
 	return report, nil
+}
+
+func BuildFileReport(referenceRoot string, candidateRoot string, downloaders []string) (Report, error) {
+	report := Report{
+		ComparisonScope: shadowComparisonScope,
+		Services:        make([]ServiceReport, 0, len(downloaders)),
+	}
+	for _, downloader := range downloaders {
+		reference, invalidReference, err := readLiveCIDRs(referenceRoot, downloader)
+		if err != nil {
+			return Report{}, err
+		}
+		candidate, invalidCandidate, err := readLiveCIDRs(candidateRoot, downloader)
+		if err != nil {
+			return Report{}, err
+		}
+		invalid := append(invalidReference, invalidCandidate...)
+		serviceReport, err := diffService(downloader, reference, candidate, invalid)
+		if err != nil {
+			return Report{}, fmt.Errorf("%s: %w", downloader, err)
+		}
+		report.Services = append(report.Services, serviceReport)
+	}
+	sortServiceReports(report.Services)
+	return report, nil
+}
+
+func sortServiceReports(services []ServiceReport) {
+	sort.Slice(services, func(i, j int) bool {
+		if services[i].LiveOnlyCount != services[j].LiveOnlyCount {
+			return services[i].LiveOnlyCount > services[j].LiveOnlyCount
+		}
+		if services[i].InvalidLiveCount != services[j].InvalidLiveCount {
+			return services[i].InvalidLiveCount > services[j].InvalidLiveCount
+		}
+		return services[i].Downloader < services[j].Downloader
+	})
 }
 
 func WriteJSON(path string, report Report) error {
@@ -94,7 +126,7 @@ func WriteJSON(path string, report Report) error {
 func WriteMarkdown(path string, report Report) error {
 	var b strings.Builder
 	b.WriteString("# Local Routing Index Coverage Comparison\n\n")
-	b.WriteString("Scope: configured local queries compared with committed downloader outputs. This report uses CIDR coverage, not exact line equality; downloaders may include non-WHOIS feeds outside `queries.yaml`.\n\n")
+	fmt.Fprintf(&b, "Scope: %s This report uses CIDR coverage, not exact line equality.\n\n", scopeDescription(report.ComparisonScope))
 	b.WriteString("| downloader | status | live | local | live only coverage | local only coverage | invalid live |\n")
 	b.WriteString("| --- | --- | ---: | ---: | ---: | ---: | ---: |\n")
 	for _, service := range report.Services {
@@ -116,6 +148,17 @@ func WriteMarkdown(path string, report Report) error {
 		return fmt.Errorf("write comparison markdown: %w", err)
 	}
 	return nil
+}
+
+func scopeDescription(scope string) string {
+	switch scope {
+	case queryComparisonScope:
+		return "configured local queries compared with committed downloader outputs; downloaders may include non-WHOIS feeds outside `queries.yaml`."
+	case shadowComparisonScope:
+		return "local-WHOIS shadow downloader outputs compared with committed downloader outputs, preserving downloader non-WHOIS additions."
+	default:
+		return scope
+	}
 }
 
 func queryLocalCIDRs(db *store.DB, queries []config.Query) (map[string]struct{}, error) {

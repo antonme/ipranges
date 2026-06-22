@@ -970,6 +970,46 @@ go build -o /tmp/irrindex ./irrindex/cmd/irrindex
 
 Expected: commands complete or fail only for documented network/source issues; no service output files are changed.
 
+- [ ] **Step 3A: Add apples-to-apples shadow-run mode**
+
+Add an `irrindex shadow-run` command for replacement evidence that is closer to
+the real downloader behavior than `queries.yaml` comparison:
+
+```bash
+irrindex shadow-run \
+  --repo . \
+  --downloader cogent \
+  --db "$RUNNER_TEMP/irrindex.db" \
+  --irrindex-bin ./irrindex-bin \
+  --out "$RUNNER_TEMP/irr-shadow-run"
+```
+
+The command should:
+
+- copy only the selected downloader folder and `utils/` into an isolated work dir
+- prepend a generated `whois` wrapper to `PATH`
+- send modeled WHOIS hosts (`riswhois.ripe.net`, RADb, RIPE, NTT, Rogers, and `bgp.net.br`) through `irrindex whois-shim`
+- forward unknown WHOIS hosts, such as APNIC lookups, to the real system `whois`
+- run the original downloader script with the same cwd convention as CI
+- compare committed output files against shadow output files by CIDR coverage
+- write `comparison.json`, `comparison.md`, and `downloaders.log`
+- leave committed `*/ipv4.txt` and `*/ipv6.txt` untouched
+
+Initial local Cogent probe using the clean shadow DB:
+
+```text
+scope=shadow_whois_output_vs_committed_downloader_outputs
+downloader=cogent
+live_count=101850
+local_count=100518
+live_only_count=793
+local_only_count=0
+```
+
+This is the correct apples-to-apples style for final replacement decisions:
+Cogent's geofeed remained in the downloader, while only the modeled WHOIS calls
+were replaced by local DB lookups.
+
 - [ ] **Step 4: Commit**
 
 ```bash
@@ -1103,6 +1143,7 @@ go test ./...
 go build -o /tmp/irrindex ./irrindex/cmd/irrindex
 /tmp/irrindex query origin AS16625 --db /tmp/irrindex.db --family 4
 /tmp/irrindex query mnt-by DATACAMP-MNT --db /tmp/irrindex.db --family 4
+/tmp/irrindex shadow-run --repo . --downloader cogent --db /tmp/irrindex.db --irrindex-bin /tmp/irrindex --out /tmp/irr-shadow-run
 git status --short
 ```
 
@@ -1111,6 +1152,7 @@ Expected:
 - Go tests pass.
 - Binary builds.
 - Query commands return CIDRs or empty output with exit code `0`.
+- Shadow-run writes a comparison report and does not mutate committed downloader output files.
 - No service output files are modified in shadow mode.
 
 ## Open Decisions

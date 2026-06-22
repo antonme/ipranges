@@ -339,6 +339,87 @@ func TestRunCompareWritesReports(t *testing.T) {
 	}
 }
 
+func TestRunShadowRunComparesDownloaderOutputWithLocalWhoisShim(t *testing.T) {
+	dir := t.TempDir()
+	serviceDir := filepath.Join(dir, "sample")
+	if err := os.MkdirAll(serviceDir, 0o755); err != nil {
+		t.Fatalf("create sample dir: %v", err)
+	}
+	writeFile(t, serviceDir, "downloader.sh", `#!/bin/bash
+set -euo pipefail
+whois -h whois.apnic.net "TAOBAO" > sample/ipv4.txt
+whois -h whois.radb.net -- "-i origin AS64500" | awk '/^route/ { print $2; }' >> sample/ipv4.txt
+echo "203.0.113.0/24" >> sample/ipv4.txt
+`)
+	writeFile(t, serviceDir, "ipv4.txt", "10.0.0.0/24\n10.0.1.0/24\n198.51.100.0/24\n203.0.113.0/24\n")
+	writeFile(t, serviceDir, "ipv6.txt", "")
+
+	fakeIrrindex := writeExecutable(t, dir, "fake-irrindex", `#!/bin/sh
+if [ "$1" != "whois-shim" ]; then
+  echo "unexpected command: $*" >&2
+  exit 2
+fi
+case "$*" in
+  *whois.apnic.net*)
+    echo "APNIC whois should have been forwarded to real whois" >&2
+    exit 3
+    ;;
+esac
+printf 'route:          10.0.0.0/23\n'
+`)
+	realBin := filepath.Join(dir, "real-bin")
+	if err := os.MkdirAll(realBin, 0o755); err != nil {
+		t.Fatalf("create real-bin: %v", err)
+	}
+	writeExecutable(t, realBin, "whois", `#!/bin/sh
+if [ "$1" = "-h" ] && [ "$2" = "whois.apnic.net" ]; then
+  printf '198.51.100.0/24\n'
+  exit 0
+fi
+echo "unexpected real whois: $*" >&2
+exit 4
+`)
+	t.Setenv("PATH", realBin+string(os.PathListSeparator)+os.Getenv("PATH"))
+
+	outDir := filepath.Join(dir, "shadow-report")
+	var stdout, stderr bytes.Buffer
+
+	code := run([]string{
+		"shadow-run",
+		"--repo", dir,
+		"--downloader", "sample",
+		"--db", filepath.Join(dir, "index.db"),
+		"--irrindex-bin", fakeIrrindex,
+		"--out", outDir,
+	}, &stdout, &stderr)
+
+	if code != 0 {
+		t.Fatalf("exit code = %d, want 0; stdout = %q stderr = %q", code, stdout.String(), stderr.String())
+	}
+
+	original, err := os.ReadFile(filepath.Join(serviceDir, "ipv4.txt"))
+	if err != nil {
+		t.Fatalf("read original ipv4: %v", err)
+	}
+	if string(original) != "10.0.0.0/24\n10.0.1.0/24\n198.51.100.0/24\n203.0.113.0/24\n" {
+		t.Fatalf("original ipv4 mutated: %q", original)
+	}
+
+	jsonData, err := os.ReadFile(filepath.Join(outDir, "comparison.json"))
+	if err != nil {
+		t.Fatalf("read shadow comparison json: %v", err)
+	}
+	if !strings.Contains(string(jsonData), `"comparison_scope": "shadow_whois_output_vs_committed_downloader_outputs"`) {
+		t.Fatalf("comparison json = %s", jsonData)
+	}
+	if !strings.Contains(string(jsonData), `"status": "equal_coverage"`) {
+		t.Fatalf("comparison json = %s", jsonData)
+	}
+	if !strings.Contains(stdout.String(), "wrote") {
+		t.Fatalf("stdout = %q, want report path summary", stdout.String())
+	}
+}
+
 func TestRunManifestSummarize(t *testing.T) {
 	dir := t.TempDir()
 	manifestPath := writeFile(t, dir, "snapshots.json", `[
@@ -432,6 +513,16 @@ func writeBytes(t *testing.T, path string, body []byte) {
 	if err := os.WriteFile(path, body, 0o644); err != nil {
 		t.Fatalf("write %s: %v", path, err)
 	}
+}
+
+func writeExecutable(t *testing.T, dir string, name string, body string) string {
+	t.Helper()
+
+	path := writeFile(t, dir, name, body)
+	if err := os.Chmod(path, 0o755); err != nil {
+		t.Fatalf("chmod %s: %v", path, err)
+	}
+	return path
 }
 
 func gzipBytes(t *testing.T, body string) []byte {

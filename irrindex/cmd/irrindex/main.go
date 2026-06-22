@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -26,6 +27,7 @@ var subcommands = map[string]struct{}{
 	"verify":          {},
 	"query":           {},
 	"compare":         {},
+	"shadow-run":      {},
 	"whois-shim":      {},
 	"extract-queries": {},
 	"manifest":        {},
@@ -63,6 +65,8 @@ func run(args []string, stdout, stderr io.Writer) int {
 		return runExtractQueries(args[1:], stdout, stderr)
 	case "compare":
 		return runCompare(args[1:], stdout, stderr)
+	case "shadow-run":
+		return runShadowRun(args[1:], stdout, stderr)
 	case "manifest":
 		return runManifest(args[1:], stdout, stderr)
 	}
@@ -72,7 +76,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 }
 
 func printUsage(w io.Writer) {
-	fmt.Fprintln(w, "Usage: irrindex <fetch|build|verify|query|compare|whois-shim|extract-queries|manifest> [options]")
+	fmt.Fprintln(w, "Usage: irrindex <fetch|build|verify|query|compare|shadow-run|whois-shim|extract-queries|manifest> [options]")
 }
 
 func runQuery(args []string, stdout, stderr io.Writer) int {
@@ -271,6 +275,262 @@ func runCompare(args []string, stdout, stderr io.Writer) int {
 	}
 	fmt.Fprintf(stdout, "wrote %s and %s\n", *jsonPath, *mdPath)
 	return 0
+}
+
+type downloaderFlag []string
+
+func (f *downloaderFlag) String() string {
+	return strings.Join(*f, ",")
+}
+
+func (f *downloaderFlag) Set(value string) error {
+	for _, part := range strings.Split(value, ",") {
+		downloader := strings.TrimSpace(part)
+		if downloader == "" {
+			continue
+		}
+		seen := false
+		for _, existing := range *f {
+			if existing == downloader {
+				seen = true
+				break
+			}
+		}
+		if seen {
+			continue
+		}
+		*f = append(*f, downloader)
+	}
+	return nil
+}
+
+type shadowRunOptions struct {
+	repoRoot    string
+	dbPath      string
+	outDir      string
+	irrindexBin string
+	downloaders []string
+}
+
+type shadowRunResult struct {
+	workRoot string
+	logPath  string
+	jsonPath string
+	mdPath   string
+}
+
+func runShadowRun(args []string, stdout, stderr io.Writer) int {
+	flags := flag.NewFlagSet("shadow-run", flag.ContinueOnError)
+	flags.SetOutput(stderr)
+	repoRoot := flags.String("repo", ".", "repository root")
+	dbPath := flags.String("db", "irrindex.db", "SQLite DB path")
+	outDir := flags.String("out", "shadow-run-report", "output directory")
+	irrindexBin := flags.String("irrindex-bin", "", "irrindex executable path")
+	var downloaders downloaderFlag
+	flags.Var(&downloaders, "downloader", "downloader name; may be repeated or comma-separated")
+	if err := flags.Parse(args); err != nil {
+		return 2
+	}
+	if len(downloaders) == 0 {
+		fmt.Fprintln(stderr, "shadow-run: --downloader is required")
+		return 2
+	}
+
+	result, err := runShadowDownloaders(shadowRunOptions{
+		repoRoot:    *repoRoot,
+		dbPath:      *dbPath,
+		outDir:      *outDir,
+		irrindexBin: *irrindexBin,
+		downloaders: append([]string(nil), downloaders...),
+	})
+	if err != nil {
+		fmt.Fprintf(stderr, "shadow-run: %v\n", err)
+		return 1
+	}
+
+	fmt.Fprintf(stdout, "wrote %s and %s\n", result.jsonPath, result.mdPath)
+	fmt.Fprintf(stdout, "workdir %s\n", result.workRoot)
+	fmt.Fprintf(stdout, "log %s\n", result.logPath)
+	return 0
+}
+
+func runShadowDownloaders(opts shadowRunOptions) (shadowRunResult, error) {
+	repoRoot, err := filepath.Abs(opts.repoRoot)
+	if err != nil {
+		return shadowRunResult{}, fmt.Errorf("resolve repo root: %w", err)
+	}
+	dbPath, err := filepath.Abs(opts.dbPath)
+	if err != nil {
+		return shadowRunResult{}, fmt.Errorf("resolve db path: %w", err)
+	}
+	outDir, err := filepath.Abs(opts.outDir)
+	if err != nil {
+		return shadowRunResult{}, fmt.Errorf("resolve output dir: %w", err)
+	}
+	irrindexBin := opts.irrindexBin
+	if irrindexBin == "" {
+		irrindexBin, err = os.Executable()
+		if err != nil {
+			return shadowRunResult{}, fmt.Errorf("resolve irrindex executable: %w", err)
+		}
+	}
+	irrindexBin, err = filepath.Abs(irrindexBin)
+	if err != nil {
+		return shadowRunResult{}, fmt.Errorf("resolve irrindex executable path: %w", err)
+	}
+
+	for _, downloader := range opts.downloaders {
+		if err := validateDownloaderName(downloader); err != nil {
+			return shadowRunResult{}, err
+		}
+		if _, err := os.Stat(filepath.Join(repoRoot, downloader, "downloader.sh")); err != nil {
+			return shadowRunResult{}, fmt.Errorf("%s: find downloader.sh: %w", downloader, err)
+		}
+	}
+
+	if err := os.MkdirAll(outDir, 0o755); err != nil {
+		return shadowRunResult{}, fmt.Errorf("create output dir: %w", err)
+	}
+	workRoot, err := os.MkdirTemp(outDir, "work-")
+	if err != nil {
+		return shadowRunResult{}, fmt.Errorf("create work dir: %w", err)
+	}
+	shimDir := filepath.Join(workRoot, ".bin")
+	if err := os.MkdirAll(shimDir, 0o755); err != nil {
+		return shadowRunResult{}, fmt.Errorf("create shim dir: %w", err)
+	}
+	realWhois, _ := exec.LookPath("whois")
+	if err := writeWhoisShim(filepath.Join(shimDir, "whois")); err != nil {
+		return shadowRunResult{}, err
+	}
+
+	if err := copyDir(filepath.Join(repoRoot, "utils"), filepath.Join(workRoot, "utils")); err != nil && !os.IsNotExist(err) {
+		return shadowRunResult{}, fmt.Errorf("copy utils: %w", err)
+	}
+	for _, downloader := range opts.downloaders {
+		if err := copyDir(filepath.Join(repoRoot, downloader), filepath.Join(workRoot, downloader)); err != nil {
+			return shadowRunResult{}, fmt.Errorf("copy %s: %w", downloader, err)
+		}
+	}
+
+	logPath := filepath.Join(outDir, "downloaders.log")
+	logFile, err := os.Create(logPath)
+	if err != nil {
+		return shadowRunResult{}, fmt.Errorf("create downloader log: %w", err)
+	}
+	defer logFile.Close()
+
+	env := append(os.Environ(),
+		"PATH="+shimDir+string(os.PathListSeparator)+os.Getenv("PATH"),
+		"IRRINDEX_BIN="+irrindexBin,
+		"IRRINDEX_DB="+dbPath,
+		"REAL_WHOIS="+realWhois,
+	)
+	for _, downloader := range opts.downloaders {
+		cmd := exec.Command("bash", filepath.Join(downloader, "downloader.sh"))
+		cmd.Dir = workRoot
+		cmd.Env = env
+		cmd.Stdout = logFile
+		cmd.Stderr = logFile
+		if err := cmd.Run(); err != nil {
+			return shadowRunResult{}, fmt.Errorf("%s: run downloader: %w; see %s", downloader, err, logPath)
+		}
+	}
+
+	report, err := indexcompare.BuildFileReport(repoRoot, workRoot, opts.downloaders)
+	if err != nil {
+		return shadowRunResult{}, fmt.Errorf("compare shadow output: %w", err)
+	}
+	jsonPath := filepath.Join(outDir, "comparison.json")
+	mdPath := filepath.Join(outDir, "comparison.md")
+	if err := indexcompare.WriteJSON(jsonPath, report); err != nil {
+		return shadowRunResult{}, err
+	}
+	if err := indexcompare.WriteMarkdown(mdPath, report); err != nil {
+		return shadowRunResult{}, err
+	}
+	return shadowRunResult{workRoot: workRoot, logPath: logPath, jsonPath: jsonPath, mdPath: mdPath}, nil
+}
+
+func validateDownloaderName(name string) error {
+	if name == "" || filepath.IsAbs(name) || strings.Contains(name, "/") || strings.Contains(name, "\\") || strings.Contains(name, "..") {
+		return fmt.Errorf("invalid downloader name %q", name)
+	}
+	return nil
+}
+
+func writeWhoisShim(path string) error {
+	body := `#!/bin/sh
+if [ "$1" = "-h" ]; then
+  case "$2" in
+    riswhois.ripe.net|whois.radb.net|whois.ripe.net|rr.ntt.net|whois.rogerstelecom.net|whois.bgp.net.br)
+      exec "${IRRINDEX_BIN}" whois-shim --db "${IRRINDEX_DB}" "$@"
+      ;;
+  esac
+fi
+if [ -n "${REAL_WHOIS}" ]; then
+  exec "${REAL_WHOIS}" "$@"
+fi
+echo "no real whois available for: $*" >&2
+exit 127
+`
+	if err := os.WriteFile(path, []byte(body), 0o755); err != nil {
+		return fmt.Errorf("write whois shim: %w", err)
+	}
+	return nil
+}
+
+func copyDir(src string, dst string) error {
+	info, err := os.Stat(src)
+	if err != nil {
+		return err
+	}
+	if !info.IsDir() {
+		return fmt.Errorf("%s is not a directory", src)
+	}
+	return filepath.WalkDir(src, func(path string, entry os.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		rel, err := filepath.Rel(src, path)
+		if err != nil {
+			return err
+		}
+		target := filepath.Join(dst, rel)
+		if entry.IsDir() {
+			info, err := entry.Info()
+			if err != nil {
+				return err
+			}
+			return os.MkdirAll(target, info.Mode().Perm())
+		}
+		return copyFile(path, target)
+	})
+}
+
+func copyFile(src string, dst string) error {
+	info, err := os.Stat(src)
+	if err != nil {
+		return err
+	}
+	in, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer in.Close()
+
+	if err := os.MkdirAll(filepath.Dir(dst), 0o755); err != nil {
+		return err
+	}
+	out, err := os.OpenFile(dst, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, info.Mode().Perm())
+	if err != nil {
+		return err
+	}
+	if _, err := io.Copy(out, in); err != nil {
+		out.Close()
+		return err
+	}
+	return out.Close()
 }
 
 func runFetch(args []string, stdout, stderr io.Writer) int {

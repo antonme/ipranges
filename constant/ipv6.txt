@@ -1,5 +1,5 @@
 # Email: support@vultr.com
-# Last Updated: 2026-08-20 13:37:14
+# Last Updated: 2026-08-21 13:40:27
 2a05:f480:1000::/38
 2a05:f480:1400::/38
 2a05:f480:1800::/38

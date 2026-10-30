@@ -52,10 +52,10 @@ get_maintained 'FSS-MNT' >> /tmp/rugov.txt || echo 'failed'
 get_maintained 'RUWEB-MNT-RIPE' >> /tmp/rugov.txt || echo 'failed'
 
 # save ipv4
-grep -v ':' /tmp/rugov.txt | grep -v "0.0.0.0" > /tmp/rugov-ipv4.txt
+awk '$0 !~ /:/ && $0 != "0.0.0.0/0" { print }' /tmp/rugov.txt > /tmp/rugov-ipv4.txt
 
 # save ipv6
-grep ':' /tmp/rugov.txt > /tmp/rugov-ipv6.txt
+awk '$0 ~ /:/ && $0 != "::/0" { print }' /tmp/rugov.txt > /tmp/rugov-ipv6.txt
 
 
 # sort & uniq

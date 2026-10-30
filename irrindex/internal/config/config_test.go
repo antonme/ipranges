@@ -1,0 +1,305 @@
+package config
+
+import (
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+)
+
+func writeFixture(t *testing.T, name, body string) string {
+	t.Helper()
+
+	path := filepath.Join(t.TempDir(), name)
+	if err := os.WriteFile(path, []byte(body), 0o644); err != nil {
+		t.Fatalf("write fixture: %v", err)
+	}
+	return path
+}
+
+func TestLoadSources(t *testing.T) {
+	path := writeFixture(t, "sources.yaml", `
+sources:
+  ripe_route:
+    url: "https://ftp.ripe.net/ripe/dbase/split/ripe.db.route.gz"
+    format: "rpsl"
+    object_types: ["route"]
+  ris_ipv4:
+    url: "https://www.ris.ripe.net/dumps/riswhoisdump.IPv4.gz"
+    format: "riswhois"
+    family: 4
+`)
+
+	cfg, err := LoadSources(path)
+	if err != nil {
+		t.Fatalf("LoadSources returned error: %v", err)
+	}
+
+	if len(cfg.Sources) != 2 {
+		t.Fatalf("source count = %d, want 2", len(cfg.Sources))
+	}
+
+	ripe := cfg.Sources[0]
+	if ripe.Name != "ripe_route" {
+		t.Fatalf("first source name = %q, want ripe_route", ripe.Name)
+	}
+	if ripe.URL != "https://ftp.ripe.net/ripe/dbase/split/ripe.db.route.gz" {
+		t.Fatalf("ripe URL = %q", ripe.URL)
+	}
+	if ripe.Format != "rpsl" {
+		t.Fatalf("ripe format = %q, want rpsl", ripe.Format)
+	}
+	if got := strings.Join(ripe.ObjectTypes, ","); got != "route" {
+		t.Fatalf("ripe object types = %q, want route", got)
+	}
+
+	ris := cfg.Sources[1]
+	if ris.Name != "ris_ipv4" {
+		t.Fatalf("second source name = %q, want ris_ipv4", ris.Name)
+	}
+	if ris.Family != 4 {
+		t.Fatalf("ris family = %d, want 4", ris.Family)
+	}
+}
+
+func TestCommittedSourcesIncludeCurrentMirrorDumps(t *testing.T) {
+	cfg, err := LoadSources(filepath.Join("..", "..", "config", "sources.yaml"))
+	if err != nil {
+		t.Fatalf("LoadSources returned error: %v", err)
+	}
+
+	want := map[string]string{
+		"radb":       "ftp://ftp.radb.net/radb/dbase/radb.db.gz",
+		"nttcom":     "https://rr1.ntt.net/nttcomRR/nttcom.db.gz",
+		"bgp_net_br": "https://ftp.bgp.net.br/tc.db.gz",
+	}
+	found := map[string]Source{}
+	for _, source := range cfg.Sources {
+		if _, ok := want[source.Name]; ok {
+			found[source.Name] = source
+		}
+	}
+
+	for name, url := range want {
+		source, ok := found[name]
+		if !ok {
+			t.Fatalf("committed sources missing %s", name)
+		}
+		if source.URL != url {
+			t.Fatalf("%s URL = %q, want %q", name, source.URL, url)
+		}
+		if source.Format != "rpsl" {
+			t.Fatalf("%s format = %q, want rpsl", name, source.Format)
+		}
+		if got := strings.Join(source.ObjectTypes, ","); got != "route,route6" {
+			t.Fatalf("%s object types = %q, want route,route6", name, got)
+		}
+	}
+}
+
+func TestCommittedSourcesIncludeRIPENonAuthRoutes(t *testing.T) {
+	cfg, err := LoadSources(filepath.Join("..", "..", "config", "sources.yaml"))
+	if err != nil {
+		t.Fatalf("LoadSources returned error: %v", err)
+	}
+
+	want := map[string]struct {
+		url         string
+		objectTypes string
+	}{
+		"ripe_nonauth_route": {
+			url:         "https://ftp.ripe.net/ripe/dbase/split/ripe-nonauth.db.route.gz",
+			objectTypes: "route",
+		},
+		"ripe_nonauth_route6": {
+			url:         "https://ftp.ripe.net/ripe/dbase/split/ripe-nonauth.db.route6.gz",
+			objectTypes: "route6",
+		},
+	}
+	found := map[string]Source{}
+	for _, source := range cfg.Sources {
+		if _, ok := want[source.Name]; ok {
+			found[source.Name] = source
+		}
+	}
+
+	for name, expected := range want {
+		source, ok := found[name]
+		if !ok {
+			t.Fatalf("committed sources missing %s", name)
+		}
+		if source.URL != expected.url {
+			t.Fatalf("%s URL = %q, want %q", name, source.URL, expected.url)
+		}
+		if source.Format != "rpsl" {
+			t.Fatalf("%s format = %q, want rpsl", name, source.Format)
+		}
+		if got := strings.Join(source.ObjectTypes, ","); got != expected.objectTypes {
+			t.Fatalf("%s object types = %q, want %s", name, got, expected.objectTypes)
+		}
+	}
+}
+
+func TestCommittedSourcesIncludeRPKIVRPs(t *testing.T) {
+	cfg, err := LoadSources(filepath.Join("..", "..", "config", "sources.yaml"))
+	if err != nil {
+		t.Fatalf("LoadSources returned error: %v", err)
+	}
+
+	for _, source := range cfg.Sources {
+		if source.Name != "rpki" {
+			continue
+		}
+		if source.URL != "https://console.rpki-client.org/rpki.csv.gz" {
+			t.Fatalf("rpki URL = %q, want rpki-client CSV gzip", source.URL)
+		}
+		if source.Format != "rpki_csv" {
+			t.Fatalf("rpki format = %q, want rpki_csv", source.Format)
+		}
+		return
+	}
+	t.Fatal("committed sources missing rpki")
+}
+
+func TestCommittedSourcesIncludeAdditionalRADBMirrorDumps(t *testing.T) {
+	cfg, err := LoadSources(filepath.Join("..", "..", "config", "sources.yaml"))
+	if err != nil {
+		t.Fatalf("LoadSources returned error: %v", err)
+	}
+
+	want := map[string]string{
+		"afrinic": "ftp://ftp.afrinic.net/pub/dbase/afrinic.db.gz",
+		"altdb":   "ftp://ftp.radb.net/radb/dbase/altdb.db.gz",
+		"reach":   "ftp://ftp.radb.net/radb/dbase/reach.db.gz",
+	}
+	found := map[string]Source{}
+	for _, source := range cfg.Sources {
+		if _, ok := want[source.Name]; ok {
+			found[source.Name] = source
+		}
+	}
+
+	for name, url := range want {
+		source, ok := found[name]
+		if !ok {
+			t.Fatalf("committed sources missing %s", name)
+		}
+		if source.URL != url {
+			t.Fatalf("%s URL = %q, want %q", name, source.URL, url)
+		}
+		if source.Format != "rpsl" {
+			t.Fatalf("%s format = %q, want rpsl", name, source.Format)
+		}
+		if got := strings.Join(source.ObjectTypes, ","); got != "route,route6" {
+			t.Fatalf("%s object types = %q, want route,route6", name, got)
+		}
+	}
+}
+
+func TestLoadSourcesRejectsDuplicateNames(t *testing.T) {
+	path := writeFixture(t, "sources.yaml", `
+sources:
+  ripe_route:
+    url: "https://example.test/one.gz"
+    format: "rpsl"
+  ripe_route:
+    url: "https://example.test/two.gz"
+    format: "rpsl"
+`)
+
+	_, err := LoadSources(path)
+	if err == nil {
+		t.Fatal("LoadSources returned nil error for duplicate source name")
+	}
+	if !strings.Contains(err.Error(), "duplicate source") {
+		t.Fatalf("error = %q, want duplicate source", err)
+	}
+}
+
+func TestLoadSourcesRejectsEmptyURL(t *testing.T) {
+	path := writeFixture(t, "sources.yaml", `
+sources:
+  empty:
+    url: ""
+    format: "rpsl"
+`)
+
+	_, err := LoadSources(path)
+	if err == nil {
+		t.Fatal("LoadSources returned nil error for empty URL")
+	}
+	if !strings.Contains(err.Error(), "empty url") {
+		t.Fatalf("error = %q, want empty url", err)
+	}
+}
+
+func TestLoadQueries(t *testing.T) {
+	path := writeFixture(t, "queries.yaml", `
+queries:
+  - downloader: akamai
+    kind: origin
+    value: AS16625
+    mirrors: ["ris", "radb"]
+  - downloader: vpnhosts
+    kind: mnt-by
+    value: DATACAMP-MNT
+    mirrors: ["ripe", "radb"]
+`)
+
+	cfg, err := LoadQueries(path)
+	if err != nil {
+		t.Fatalf("LoadQueries returned error: %v", err)
+	}
+
+	if len(cfg.Queries) != 2 {
+		t.Fatalf("query count = %d, want 2", len(cfg.Queries))
+	}
+
+	q := cfg.Queries[0]
+	if q.Downloader != "akamai" {
+		t.Fatalf("downloader = %q, want akamai", q.Downloader)
+	}
+	if q.Kind != "origin" {
+		t.Fatalf("kind = %q, want origin", q.Kind)
+	}
+	if q.Value != "AS16625" {
+		t.Fatalf("value = %q, want AS16625", q.Value)
+	}
+	if got := strings.Join(q.Mirrors, ","); got != "ris,radb" {
+		t.Fatalf("mirrors = %q, want ris,radb", got)
+	}
+}
+
+func TestLoadQueriesRejectsUnsupportedKind(t *testing.T) {
+	path := writeFixture(t, "queries.yaml", `
+queries:
+  - downloader: akamai
+    kind: unknown
+    value: AS16625
+`)
+
+	_, err := LoadQueries(path)
+	if err == nil {
+		t.Fatal("LoadQueries returned nil error for unsupported kind")
+	}
+	if !strings.Contains(err.Error(), "unsupported query kind") {
+		t.Fatalf("error = %q, want unsupported query kind", err)
+	}
+}
+
+func TestLoadQueriesRejectsEmptyValue(t *testing.T) {
+	path := writeFixture(t, "queries.yaml", `
+queries:
+  - downloader: akamai
+    kind: origin
+    value: ""
+`)
+
+	_, err := LoadQueries(path)
+	if err == nil {
+		t.Fatal("LoadQueries returned nil error for empty value")
+	}
+	if !strings.Contains(err.Error(), "empty query value") {
+		t.Fatalf("error = %q, want empty query value", err)
+	}
+}

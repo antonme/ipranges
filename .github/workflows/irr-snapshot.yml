@@ -1,0 +1,42 @@
+name: "IRR Snapshot Shadow"
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "38 5 * * *"
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+
+      - name: Build irrindex
+        run: go build -o ./irrindex-bin ./irrindex/cmd/irrindex
+
+      - name: Fetch sources
+        run: ./irrindex-bin fetch --config irrindex/config/sources.yaml --cache-dir "$RUNNER_TEMP/irr-cache" --manifest "$RUNNER_TEMP/source-manifest.json"
+
+      - name: Build index
+        run: ./irrindex-bin build --config irrindex/config/sources.yaml --cache-dir "$RUNNER_TEMP/irr-cache" --db "$RUNNER_TEMP/irrindex.db"
+
+      - name: Verify index
+        run: ./irrindex-bin verify --db "$RUNNER_TEMP/irrindex.db"
+
+      - name: Compare with committed outputs
+        run: ./irrindex-bin compare --db "$RUNNER_TEMP/irrindex.db" --queries irrindex/config/queries.yaml --live-root . --out "$RUNNER_TEMP/irr-report"
+
+      - name: Add report to summary
+        run: cat "$RUNNER_TEMP/irr-report/comparison.md" >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: irr-snapshot-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/irrindex.db
+            ${{ runner.temp }}/source-manifest.json
+            ${{ runner.temp }}/irr-report/

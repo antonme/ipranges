@@ -1,0 +1,80 @@
+sources:
+  ris_ipv4:
+    url: "https://www.ris.ripe.net/dumps/riswhoisdump.IPv4.gz"
+    format: "riswhois"
+    family: 4
+  ris_ipv6:
+    url: "https://www.ris.ripe.net/dumps/riswhoisdump.IPv6.gz"
+    format: "riswhois"
+    family: 6
+  rpki:
+    url: "https://console.rpki-client.org/rpki.csv.gz"
+    format: "rpki_csv"
+  ripe_route:
+    url: "https://ftp.ripe.net/ripe/dbase/split/ripe.db.route.gz"
+    format: "rpsl"
+    object_types: ["route"]
+  ripe_route6:
+    url: "https://ftp.ripe.net/ripe/dbase/split/ripe.db.route6.gz"
+    format: "rpsl"
+    object_types: ["route6"]
+  ripe_nonauth_route:
+    url: "https://ftp.ripe.net/ripe/dbase/split/ripe-nonauth.db.route.gz"
+    format: "rpsl"
+    object_types: ["route"]
+  ripe_nonauth_route6:
+    url: "https://ftp.ripe.net/ripe/dbase/split/ripe-nonauth.db.route6.gz"
+    format: "rpsl"
+    object_types: ["route6"]
+  ripe_inetnum:
+    url: "https://ftp.ripe.net/ripe/dbase/split/ripe.db.inetnum.gz"
+    format: "rpsl"
+    object_types: ["inetnum"]
+  ripe_inet6num:
+    url: "https://ftp.ripe.net/ripe/dbase/split/ripe.db.inet6num.gz"
+    format: "rpsl"
+    object_types: ["inet6num"]
+  radb:
+    url: "ftp://ftp.radb.net/radb/dbase/radb.db.gz"
+    format: "rpsl"
+    object_types: ["route", "route6"]
+  altdb:
+    url: "ftp://ftp.radb.net/radb/dbase/altdb.db.gz"
+    format: "rpsl"
+    object_types: ["route", "route6"]
+  reach:
+    url: "ftp://ftp.radb.net/radb/dbase/reach.db.gz"
+    format: "rpsl"
+    object_types: ["route", "route6"]
+  afrinic:
+    url: "ftp://ftp.afrinic.net/pub/dbase/afrinic.db.gz"
+    format: "rpsl"
+    object_types: ["route", "route6"]
+  nttcom:
+    url: "https://rr1.ntt.net/nttcomRR/nttcom.db.gz"
+    format: "rpsl"
+    object_types: ["route", "route6"]
+  bgp_net_br:
+    url: "https://ftp.bgp.net.br/tc.db.gz"
+    format: "rpsl"
+    object_types: ["route", "route6"]
+  arin_irr:
+    url: "https://ftp.arin.net/pub/rr/arin.db.gz"
+    format: "rpsl"
+    object_types: ["route", "route6"]
+  apnic_route:
+    url: "https://ftp.apnic.net/apnic/whois/apnic.db.route.gz"
+    format: "rpsl"
+    object_types: ["route"]
+  apnic_route6:
+    url: "https://ftp.apnic.net/apnic/whois/apnic.db.route6.gz"
+    format: "rpsl"
+    object_types: ["route6"]
+  apnic_inetnum:
+    url: "https://ftp.apnic.net/apnic/whois/apnic.db.inetnum.gz"
+    format: "rpsl"
+    object_types: ["inetnum"]
+  apnic_inet6num:
+    url: "https://ftp.apnic.net/apnic/whois/apnic.db.inet6num.gz"
+    format: "rpsl"
+    object_types: ["inet6num"]

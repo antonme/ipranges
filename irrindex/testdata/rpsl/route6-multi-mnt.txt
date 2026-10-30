@@ -1,0 +1,5 @@
+route6:         2001:db8::/32
+origin:         AS65536
+mnt-by:         FIRST-MNT
+mnt-by:         SECOND-MNT
+source:         TEST

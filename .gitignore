@@ -2,3 +2,9 @@
 .venv/
 __pycache__/
 *.pyc
+.irr-cache/
+snapshots/
+indexes/
+*.db
+*.db-shm
+*.db-wal

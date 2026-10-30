@@ -18,7 +18,7 @@ curl -fsS --retry 3 --retry-delay 5 --retry-all-errors https://www.gstatic.com/i
 txt="$(dig TXT _netblocks.google.com +short @8.8.8.8)"
 idx=2
 while [[ -n "${txt}" ]]; do
-  echo "${txt}" | tr '[:space:]+' "\n" | grep ':' | cut -d: -f2- >> /tmp/netblocks.txt
+  echo "${txt}" | tr '[:space:]+' "\n" | grep ':' | cut -d: -f2- >> /tmp/netblocks.txt || true
   txt="$(dig TXT _netblocks${idx}.google.com +short @8.8.8.8)"
   ((idx++))
 done

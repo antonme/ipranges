@@ -17,10 +17,10 @@ get_maintained 'MNT-QRATOR' | grep -v 'route-set' | grep "/" > /tmp/qrator.txt |
 
 
 # save ipv4
-grep -v ':' /tmp/qrator.txt > /tmp/qrator-ipv4.txt
+grep -v ':' /tmp/qrator.txt > /tmp/qrator-ipv4.txt || true
 
 # save ipv6
-grep ':' /tmp/qrator.txt > /tmp/qrator-ipv6.txt
+grep ':' /tmp/qrator.txt > /tmp/qrator-ipv6.txt || true
 
 
 # sort & uniq

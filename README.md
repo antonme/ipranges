@@ -4,7 +4,7 @@ I maintain this for my personal use on my home router mostly.
 
 ## Included ip address ranges
 ### Cloud Services and Content Delivery Networks
-Amazon (AWS), Alibaba Cloud, Azure (Microsoft), Backblaze, Digital Ocean, Google Cloud, Hetzner, Hostinger, Linode, MTS Cloud, Oracle, OVHcloud, Vultr (Constant), Yandex Cloud, Akamai, CacheFly, Cloudflare, EdgeCast, Fastly, Imperva, Qrator
+Amazon (AWS), Alibaba Cloud, Azure (Microsoft), Backblaze, Digital Ocean, Google Cloud, Hetzner, Hostinger, Linode, MTS Cloud, Oracle, OVHcloud, Scaleway, Vultr (Constant), Yandex Cloud, Akamai, CacheFly, Cloudflare, EdgeCast, Fastly, Imperva, Qrator
 
 ### Search Engines, Social Media, and Communication Platforms
 Bing (Microsoft), Google, Yahoo, Yandex, Facebook, LinkedIn, TikTok, Telegram, Twitter (X.com), Vkontakte, YouTube, Kinopub, Rambler

@@ -44,6 +44,7 @@ rambler/ipv4_merged.txt
 rostelecom/ipv4_merged.txt
 rugov/ipv4_merged.txt
 sber/ipv4_merged.txt
+scaleway/ipv4_merged.txt
 surfshark/ipv4_merged.txt
 telegram/ipv4_merged.txt
 tiktok/ipv4_merged.txt

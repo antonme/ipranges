@@ -39,6 +39,7 @@ rambler/ipv6_merged.txt
 rostelecom/ipv6_merged.txt
 rugov/ipv6_merged.txt
 sber/ipv6_merged.txt
+scaleway/ipv6_merged.txt
 surfshark/ipv6_merged.txt
 telegram/ipv6_merged.txt
 tiktok/ipv6_merged.txt

@@ -7,12 +7,23 @@ sources:
     url: "https://www.ris.ripe.net/dumps/riswhoisdump.IPv6.gz"
     format: "riswhois"
     family: 6
+  rpki:
+    url: "https://console.rpki-client.org/rpki.csv.gz"
+    format: "rpki_csv"
   ripe_route:
     url: "https://ftp.ripe.net/ripe/dbase/split/ripe.db.route.gz"
     format: "rpsl"
     object_types: ["route"]
   ripe_route6:
     url: "https://ftp.ripe.net/ripe/dbase/split/ripe.db.route6.gz"
+    format: "rpsl"
+    object_types: ["route6"]
+  ripe_nonauth_route:
+    url: "https://ftp.ripe.net/ripe/dbase/split/ripe-nonauth.db.route.gz"
+    format: "rpsl"
+    object_types: ["route"]
+  ripe_nonauth_route6:
+    url: "https://ftp.ripe.net/ripe/dbase/split/ripe-nonauth.db.route6.gz"
     format: "rpsl"
     object_types: ["route6"]
   ripe_inetnum:
@@ -25,6 +36,18 @@ sources:
     object_types: ["inet6num"]
   radb:
     url: "ftp://ftp.radb.net/radb/dbase/radb.db.gz"
+    format: "rpsl"
+    object_types: ["route", "route6"]
+  altdb:
+    url: "ftp://ftp.radb.net/radb/dbase/altdb.db.gz"
+    format: "rpsl"
+    object_types: ["route", "route6"]
+  reach:
+    url: "ftp://ftp.radb.net/radb/dbase/reach.db.gz"
+    format: "rpsl"
+    object_types: ["route", "route6"]
+  afrinic:
+    url: "ftp://ftp.afrinic.net/pub/dbase/afrinic.db.gz"
     format: "rpsl"
     object_types: ["route", "route6"]
   nttcom:

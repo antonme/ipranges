@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"github.com/antonme/ipranges/irrindex/internal/config"
+	"github.com/antonme/ipranges/irrindex/internal/mirrors"
 	routequery "github.com/antonme/ipranges/irrindex/internal/query"
 	"github.com/antonme/ipranges/irrindex/internal/store"
 )
@@ -156,6 +157,8 @@ func scopeDescription(scope string) string {
 		return "configured local queries compared with committed downloader outputs; downloaders may include non-WHOIS feeds outside `queries.yaml`."
 	case shadowComparisonScope:
 		return "local-WHOIS shadow downloader outputs compared with committed downloader outputs, preserving downloader non-WHOIS additions."
+	case "local_whois_shadow_output_vs_cached_whois_shadow_output":
+		return "local-WHOIS shadow downloader outputs compared with cached-WHOIS shadow downloader outputs, using the same cached non-WHOIS additions on both sides."
 	default:
 		return scope
 	}
@@ -228,6 +231,9 @@ func readCIDRFile(path string, label string, out map[string]struct{}) ([]string,
 		prefix, err := normalizeCIDR(strings.Fields(line)[0])
 		if err != nil {
 			invalid = append(invalid, fmt.Sprintf("%s:%d: %s", label, lineNo, line))
+			continue
+		}
+		if isDefaultCIDR(prefix) {
 			continue
 		}
 		out[prefix] = struct{}{}
@@ -567,31 +573,28 @@ func normalizeCIDR(value string) (string, error) {
 		}
 		return netip.PrefixFrom(addr, 128).String(), nil
 	}
-	return prefix.Masked().String(), nil
+	masked := prefix.Masked()
+	if prefix.Addr() != masked.Addr() {
+		return "", fmt.Errorf("CIDR %q has host bits set; normalized form is %q", value, masked.String())
+	}
+	return masked.String(), nil
 }
 
-func sourceFiltersFromMirrors(mirrors []string) []string {
-	if len(mirrors) == 0 {
+func isDefaultCIDR(prefix string) bool {
+	return prefix == "0.0.0.0/0" || prefix == "::/0"
+}
+
+func sourceFiltersFromMirrors(mirrorNames []string) []string {
+	if len(mirrorNames) == 0 {
 		return nil
 	}
 	var sources []string
-	for _, mirror := range mirrors {
-		switch mirror {
-		case "ris":
-			sources = append(sources, "ris", "ris_ipv4", "ris_ipv6")
-		case "ripe":
-			sources = append(sources, "ripe", "ripe_route", "ripe_route6", "ripe_inetnum", "ripe_inet6num")
-		case "radb":
-			sources = append(sources, "radb")
-		case "ntt":
-			sources = append(sources, "ntt", "nttcom", "nttcom_route", "nttcom_route6")
-		case "rogers":
-			sources = append(sources, "rogers", "rogerstelecom")
-		case "bgp_net_br":
-			sources = append(sources, "bgp_net_br", "bgp.net.br")
-		default:
-			sources = append(sources, mirror)
+	for _, mirror := range mirrorNames {
+		if mirrorSources, ok := mirrors.Sources(mirror); ok {
+			sources = append(sources, mirrorSources...)
+			continue
 		}
+		sources = append(sources, mirror)
 	}
 	return sources
 }

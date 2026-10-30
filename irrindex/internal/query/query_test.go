@@ -26,6 +26,32 @@ func TestByOriginCombinesRPSLAndRIS(t *testing.T) {
 	}
 }
 
+func TestByOriginMatchesRISOriginSetMembers(t *testing.T) {
+	db, err := store.Open(filepath.Join(t.TempDir(), "test.db"))
+	if err != nil {
+		t.Fatalf("Open returned error: %v", err)
+	}
+	defer db.Close()
+
+	err = db.InsertRISSource("ris_ipv6", []ris.Record{{
+		ASN:       "AS{16625,17727,55818}",
+		Prefix:    "2404:c000::/32",
+		PeerCount: 4,
+	}}, 6)
+	if err != nil {
+		t.Fatalf("InsertRISSource returned error: %v", err)
+	}
+
+	got, err := ByOrigin(db, "AS16625", 6, nil)
+	if err != nil {
+		t.Fatalf("ByOrigin returned error: %v", err)
+	}
+	want := []string{"2404:c000::/32"}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("ByOrigin = %#v, want %#v", got, want)
+	}
+}
+
 func TestByMaintainerIndexesEveryMaintainer(t *testing.T) {
 	db := buildTestDB(t)
 	defer db.Close()

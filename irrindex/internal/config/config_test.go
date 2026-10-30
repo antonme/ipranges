@@ -97,6 +97,105 @@ func TestCommittedSourcesIncludeCurrentMirrorDumps(t *testing.T) {
 	}
 }
 
+func TestCommittedSourcesIncludeRIPENonAuthRoutes(t *testing.T) {
+	cfg, err := LoadSources(filepath.Join("..", "..", "config", "sources.yaml"))
+	if err != nil {
+		t.Fatalf("LoadSources returned error: %v", err)
+	}
+
+	want := map[string]struct {
+		url         string
+		objectTypes string
+	}{
+		"ripe_nonauth_route": {
+			url:         "https://ftp.ripe.net/ripe/dbase/split/ripe-nonauth.db.route.gz",
+			objectTypes: "route",
+		},
+		"ripe_nonauth_route6": {
+			url:         "https://ftp.ripe.net/ripe/dbase/split/ripe-nonauth.db.route6.gz",
+			objectTypes: "route6",
+		},
+	}
+	found := map[string]Source{}
+	for _, source := range cfg.Sources {
+		if _, ok := want[source.Name]; ok {
+			found[source.Name] = source
+		}
+	}
+
+	for name, expected := range want {
+		source, ok := found[name]
+		if !ok {
+			t.Fatalf("committed sources missing %s", name)
+		}
+		if source.URL != expected.url {
+			t.Fatalf("%s URL = %q, want %q", name, source.URL, expected.url)
+		}
+		if source.Format != "rpsl" {
+			t.Fatalf("%s format = %q, want rpsl", name, source.Format)
+		}
+		if got := strings.Join(source.ObjectTypes, ","); got != expected.objectTypes {
+			t.Fatalf("%s object types = %q, want %s", name, got, expected.objectTypes)
+		}
+	}
+}
+
+func TestCommittedSourcesIncludeRPKIVRPs(t *testing.T) {
+	cfg, err := LoadSources(filepath.Join("..", "..", "config", "sources.yaml"))
+	if err != nil {
+		t.Fatalf("LoadSources returned error: %v", err)
+	}
+
+	for _, source := range cfg.Sources {
+		if source.Name != "rpki" {
+			continue
+		}
+		if source.URL != "https://console.rpki-client.org/rpki.csv.gz" {
+			t.Fatalf("rpki URL = %q, want rpki-client CSV gzip", source.URL)
+		}
+		if source.Format != "rpki_csv" {
+			t.Fatalf("rpki format = %q, want rpki_csv", source.Format)
+		}
+		return
+	}
+	t.Fatal("committed sources missing rpki")
+}
+
+func TestCommittedSourcesIncludeAdditionalRADBMirrorDumps(t *testing.T) {
+	cfg, err := LoadSources(filepath.Join("..", "..", "config", "sources.yaml"))
+	if err != nil {
+		t.Fatalf("LoadSources returned error: %v", err)
+	}
+
+	want := map[string]string{
+		"afrinic": "ftp://ftp.afrinic.net/pub/dbase/afrinic.db.gz",
+		"altdb":   "ftp://ftp.radb.net/radb/dbase/altdb.db.gz",
+		"reach":   "ftp://ftp.radb.net/radb/dbase/reach.db.gz",
+	}
+	found := map[string]Source{}
+	for _, source := range cfg.Sources {
+		if _, ok := want[source.Name]; ok {
+			found[source.Name] = source
+		}
+	}
+
+	for name, url := range want {
+		source, ok := found[name]
+		if !ok {
+			t.Fatalf("committed sources missing %s", name)
+		}
+		if source.URL != url {
+			t.Fatalf("%s URL = %q, want %q", name, source.URL, url)
+		}
+		if source.Format != "rpsl" {
+			t.Fatalf("%s format = %q, want rpsl", name, source.Format)
+		}
+		if got := strings.Join(source.ObjectTypes, ","); got != "route,route6" {
+			t.Fatalf("%s object types = %q, want route,route6", name, got)
+		}
+	}
+}
+
 func TestLoadSourcesRejectsDuplicateNames(t *testing.T) {
 	path := writeFixture(t, "sources.yaml", `
 sources:

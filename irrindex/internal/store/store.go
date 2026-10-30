@@ -183,8 +183,10 @@ func (db *DB) InsertRISSource(sourceName string, records []ris.Record, family in
 		if err != nil {
 			return fmt.Errorf("get RIS object id: %w", err)
 		}
-		if err := insertAttr(attrStmt, objectID, "origin", normalizeASN(record.ASN)); err != nil {
-			return err
+		for _, origin := range risOriginAttrs(record.ASN) {
+			if err := insertAttr(attrStmt, objectID, "origin", origin); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -293,6 +295,28 @@ func normalizeAttrValue(name string, value string) string {
 	default:
 		return strings.TrimSpace(value)
 	}
+}
+
+func risOriginAttrs(value string) []string {
+	value = strings.TrimSpace(value)
+	if len(value) >= 4 && strings.EqualFold(value[:3], "AS{") && strings.HasSuffix(value, "}") {
+		inner := strings.TrimSuffix(value[3:], "}")
+		seen := map[string]struct{}{}
+		var origins []string
+		for _, part := range strings.Split(inner, ",") {
+			origin := normalizeASN(part)
+			if origin == "AS" {
+				continue
+			}
+			if _, ok := seen[origin]; ok {
+				continue
+			}
+			seen[origin] = struct{}{}
+			origins = append(origins, origin)
+		}
+		return origins
+	}
+	return []string{normalizeASN(value)}
 }
 
 func normalizeASN(value string) string {

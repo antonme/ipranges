@@ -139,6 +139,7 @@ irrindex/
   internal/fetch/fetch.go
   internal/rpsl/parser.go
   internal/ris/parser.go
+  internal/rpki/parser.go
   internal/store/schema.sql
   internal/store/store.go
   internal/query/query.go
@@ -180,12 +181,23 @@ sources:
     url: "https://www.ris.ripe.net/dumps/riswhoisdump.IPv6.gz"
     format: "riswhois"
     family: 6
+  rpki:
+    url: "https://console.rpki-client.org/rpki.csv.gz"
+    format: "rpki_csv"
   ripe_route:
     url: "https://ftp.ripe.net/ripe/dbase/split/ripe.db.route.gz"
     format: "rpsl"
     object_types: ["route"]
   ripe_route6:
     url: "https://ftp.ripe.net/ripe/dbase/split/ripe.db.route6.gz"
+    format: "rpsl"
+    object_types: ["route6"]
+  ripe_nonauth_route:
+    url: "https://ftp.ripe.net/ripe/dbase/split/ripe-nonauth.db.route.gz"
+    format: "rpsl"
+    object_types: ["route"]
+  ripe_nonauth_route6:
+    url: "https://ftp.ripe.net/ripe/dbase/split/ripe-nonauth.db.route6.gz"
     format: "rpsl"
     object_types: ["route6"]
   ripe_inetnum:
@@ -198,6 +210,18 @@ sources:
     object_types: ["inet6num"]
   radb:
     url: "ftp://ftp.radb.net/radb/dbase/radb.db.gz"
+    format: "rpsl"
+    object_types: ["route", "route6"]
+  altdb:
+    url: "ftp://ftp.radb.net/radb/dbase/altdb.db.gz"
+    format: "rpsl"
+    object_types: ["route", "route6"]
+  reach:
+    url: "ftp://ftp.radb.net/radb/dbase/reach.db.gz"
+    format: "rpsl"
+    object_types: ["route", "route6"]
+  afrinic:
+    url: "ftp://ftp.afrinic.net/pub/dbase/afrinic.db.gz"
     format: "rpsl"
     object_types: ["route", "route6"]
   nttcom:
@@ -233,10 +257,33 @@ sources:
 Deferred source set:
 
 - LACNIC DB: sampled `lacnic.db.gz` exposed `inetnum` records without `mnt-by` and no `route`/`route6`/`origin`/`mnt-by` lines in a direct scan, so defer until a useful public LACNIC IRR source is identified.
-- AFRINIC DB: add only after confirming fetch path, access constraints, and whether redistribution/use terms fit this project.
+- LEVEL3 DB: public registry listings point to `ftp://rr.Level3.net/level3.db.gz`, but that endpoint timed out repeatedly from this environment. RADB and NTT list LEVEL3 in `-q sources`, but anonymous `-g LEVEL3:3:...` NRTM range queries returned `%% ERROR: Access denied`. Keep this as the largest unresolved source gap unless a reliable Level3 dump/NRTM credential is found.
 - Rogers DB: `whois.rogerstelecom.net` is queried by current scripts, and TC lists `ROGERS` among mirrored databases, but no standalone Rogers HTTP(S) dump has been confirmed. Defer direct Rogers until either an HTTP(S) dump is found or object-level `source:` filtering lets `rogers` match `source: ROGERS` objects inside aggregate dumps.
 - RouteViews/RIS MRT: add only if RISWhois dumps and IRR dumps leave repeated important gaps.
 - ARIN Bulk Whois: do not add in this plan.
+
+### Shadow Findings From `rugov`
+
+The first full shadow comparison showed `rugov` as the worst gap, but investigation found that most of it was a comparison artifact:
+
+- Cached live `riswhois.ripe.net origin AS12389` returned `::/0`; the local index already drops default routes, and the comparison now ignores `0.0.0.0/0` and `::/0` on file inputs too.
+- Live `rr.ntt.net` is an IRRd-style aggregate, not just the NTTCOM dump. For `rugov`, it exposed `source: RIPE-NONAUTH` and `source: RPKI` objects that were absent from the initial local source set.
+- RIPE-NONAUTH is covered by RIPE split route dumps and can be parsed as normal RPSL.
+- RPKI is covered by validated VRP CSV from `rpki-client.org`; the local parser converts each VRP into route/route6 objects with `origin`, `max-length`, `trust-anchor`, and `expires` attrs.
+- After adding default filtering, RIPE-NONAUTH, and RPKI, the focused `rugov` cached-WHOIS shadow run moved from `live_only_count=1066` to `live_only_count=0`; remaining differences are `local_only_count=16`.
+- The full shadow run later exposed one malformed `vpnhosts` live line, `178.249.213.0/2`, which would otherwise normalize to `128.0.0.0/2`; comparison now treats non-canonical CIDRs as invalid lines instead of masking them into huge ranges.
+
+### Shadow Findings From Worst Remaining Services
+
+Focused cached-WHOIS shadow runs over the earlier worst cases were used for source-by-source iteration. Counts are CIDR coverage gaps, not line counts.
+
+- With RIPE-NONAUTH and RPKI added, the selected worst-case set still had 122 live-only coverage gaps.
+- Adding ALTDB and REACH reduced the selected set to 70 live-only gaps and made `yahoo` exact-equal.
+- Expanding RIS origin sets such as `AS{16625,17727,55818}` into individual origin attrs reduced the selected set to 67 live-only gaps and made `alibaba` `local_includes_live`.
+- Adding public AFRINIC IRR from `ftp://ftp.afrinic.net/pub/dbase/afrinic.db.gz` reduced the selected set to 48 live-only gaps. `expressvpn` and `surfshark` became `local_includes_live`, and `M247` dropped from 4 gaps to 1.
+- The remaining 48 focused gaps are dominated by LEVEL3 objects: Facebook/Telmex prefixes, Akamai prefixes, and one each for Adobe, Apple, Cogent, and Edgecast. Direct RADB prefix queries show the useful exact objects are `source: LEVEL3`; the standalone Level3 FTP dump is currently unreachable and anonymous NRTM is denied.
+- `M247`'s remaining `149.33.45.0/24` gap is a RADB freshness issue: the live object was last modified on 2026-06-23 13:49 UTC, while the public RADB FTP snapshot was still dated 2026-06-22 17:16.
+- `rostelecom`'s remaining `2a02:960::/32` gap is a mirror semantic mismatch: RADB/NTT live WHOIS return a `source: RIPE` object with `mnt-by: ROSTELECOM-MNT`, while the current official RIPE route6 split still has `mnt-by: ELCOM-ISP-MNT`.
 
 ## SQLite Schema
 
@@ -1196,7 +1243,6 @@ Expected:
 
 - Decide whether shadow reports should be committed to a separate `irr-reports` branch or kept only as artifacts.
 - Decide whether to archive weekly SQLite snapshots as GitHub Release assets after the first two weeks.
-- Decide whether AFRINIC is included after checking the current access and use terms.
 - Decide whether `whois-shim` or explicit `db_routes`/`db_mnt` helper calls are preferred for final cutover. The plan implements both but uses helper calls for augment mode because they are easier to review.
 
 ## Final Recommendation

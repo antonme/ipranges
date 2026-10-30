@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/antonme/ipranges/irrindex/internal/config"
+	"github.com/antonme/ipranges/irrindex/internal/mirrors"
 	"gopkg.in/yaml.v3"
 )
 
@@ -187,7 +188,7 @@ func extractHelpers(script string) map[string]helperSpec {
 func parseHelperBody(lines []string) (helperSpec, bool) {
 	var kind string
 	var hosts []string
-	var mirrors []string
+	var mirrorNames []string
 	for _, line := range lines {
 		hostMatch := whoisHostRE.FindStringSubmatch(line)
 		if hostMatch == nil {
@@ -210,31 +211,12 @@ func parseHelperBody(lines []string) (helperSpec, bool) {
 		}
 		host := hostMatch[1]
 		hosts = appendUnique(hosts, host)
-		mirrors = appendUnique(mirrors, mirrorName(host))
+		mirrorNames = appendUnique(mirrorNames, mirrors.Name(host))
 	}
 	if kind == "" || len(hosts) == 0 {
 		return helperSpec{}, false
 	}
-	return helperSpec{kind: kind, hosts: hosts, mirrors: mirrors}, true
-}
-
-func mirrorName(host string) string {
-	switch strings.ToLower(host) {
-	case "riswhois.ripe.net":
-		return "ris"
-	case "whois.radb.net":
-		return "radb"
-	case "whois.ripe.net":
-		return "ripe"
-	case "rr.ntt.net":
-		return "ntt"
-	case "whois.rogerstelecom.net":
-		return "rogers"
-	case "whois.bgp.net.br":
-		return "bgp_net_br"
-	default:
-		return host
-	}
+	return helperSpec{kind: kind, hosts: hosts, mirrors: mirrorNames}, true
 }
 
 func appendUnique(values []string, value string) []string {

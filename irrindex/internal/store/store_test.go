@@ -108,3 +108,25 @@ func TestInsertRPSLSourceNormalizesLeadingZeroIPv4Route(t *testing.T) {
 		t.Fatalf("prefix = %q, want 64.6.160.0/19", prefix)
 	}
 }
+
+func TestRISOriginAttrsExpandsOriginSets(t *testing.T) {
+	tests := []struct {
+		value string
+		want  []string
+	}{
+		{value: "16625", want: []string{"AS16625"}},
+		{value: "AS{16625,17727,16625}", want: []string{"AS16625", "AS17727"}},
+		{value: "AS{}", want: nil},
+	}
+	for _, tc := range tests {
+		got := risOriginAttrs(tc.value)
+		if len(got) != len(tc.want) {
+			t.Fatalf("risOriginAttrs(%q) = %#v, want %#v", tc.value, got, tc.want)
+		}
+		for i := range got {
+			if got[i] != tc.want[i] {
+				t.Fatalf("risOriginAttrs(%q) = %#v, want %#v", tc.value, got, tc.want)
+			}
+		}
+	}
+}

@@ -6,10 +6,12 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/antonme/ipranges/irrindex/internal/config"
 	"github.com/antonme/ipranges/irrindex/internal/query"
@@ -103,6 +105,9 @@ sources:
     url: "https://example.invalid/riswhoisdump.IPv4.gz"
     format: "riswhois"
     family: 4
+  rpki:
+    url: "https://example.invalid/rpki.csv.gz"
+    format: "rpki_csv"
   ripe_inetnum:
     url: "https://example.invalid/ripe.db.inetnum.gz"
     format: "rpsl"
@@ -116,8 +121,11 @@ sources:
 origin:         AS16625
 mnt-by:         AKAMAI-MNT
 source:         RIPE
-`))
+	`))
 	writeBytes(t, filepath.Join(cacheDir, "ris_ipv4.gz"), gzipBytes(t, "64073\t0.0.0.0/0\t1\n16625\t23.32.0.0/11\t12\n"))
+	writeBytes(t, filepath.Join(cacheDir, "rpki.gz"), gzipBytes(t, `ASN,IP Prefix,Max Length,Trust Anchor,Expires
+AS12389,83.166.227.0/24,24,ripe,1782742655
+`))
 	writeBytes(t, filepath.Join(cacheDir, "ripe_inetnum.gz"), []byte("not gzip because build must skip inetnum-only sources"))
 
 	dbPath := filepath.Join(dir, "index.db")
@@ -128,7 +136,7 @@ source:         RIPE
 	if code != 0 {
 		t.Fatalf("exit code = %d, want 0; stderr = %q", code, stderr.String())
 	}
-	if !strings.Contains(stdout.String(), "ripe_route ok") || !strings.Contains(stdout.String(), "ris_ipv4 ok") {
+	if !strings.Contains(stdout.String(), "ripe_route ok") || !strings.Contains(stdout.String(), "ris_ipv4 ok") || !strings.Contains(stdout.String(), "rpki ok") {
 		t.Fatalf("stdout = %q, want build source summaries", stdout.String())
 	}
 	if !strings.Contains(stdout.String(), "ripe_inetnum skipped") {
@@ -156,6 +164,14 @@ source:         RIPE
 	}
 	if len(got) != 0 {
 		t.Fatalf("default route query = %#v, want empty", got)
+	}
+
+	got, err = query.ByOrigin(db, "AS12389", 4, []string{"rpki"})
+	if err != nil {
+		t.Fatalf("ByOrigin RPKI returned error: %v", err)
+	}
+	if want := []string{"83.166.227.0/24"}; !reflect.DeepEqual(got, want) {
+		t.Fatalf("ByOrigin RPKI = %#v, want %#v", got, want)
 	}
 }
 
@@ -246,6 +262,37 @@ func TestRunWhoisShimCommands(t *testing.T) {
 			}
 			if stdout.String() != tc.want {
 				t.Fatalf("stdout = %q, want %q", stdout.String(), tc.want)
+			}
+		})
+	}
+}
+
+func TestSourceFiltersForNTTHostIncludesRIPENonAuth(t *testing.T) {
+	got, ok := sourceFiltersForHost("rr.ntt.net")
+	if !ok {
+		t.Fatal("sourceFiltersForHost returned ok=false for rr.ntt.net")
+	}
+	for _, want := range []string{"nttcom", "radb", "ripe_nonauth_route", "ripe_nonauth_route6", "rpki", "altdb", "afrinic"} {
+		if !containsString(got, want) {
+			t.Fatalf("source filters = %#v, want %s", got, want)
+		}
+	}
+	if containsString(got, "reach") {
+		t.Fatalf("source filters = %#v, NTT does not mirror REACH", got)
+	}
+}
+
+func TestSourceFiltersForRADBAggregateHostsIncludePublicMirrors(t *testing.T) {
+	for _, host := range []string{"whois.radb.net", "rr.ntt.net"} {
+		t.Run(host, func(t *testing.T) {
+			got, ok := sourceFiltersForHost(host)
+			if !ok {
+				t.Fatalf("sourceFiltersForHost returned ok=false for %s", host)
+			}
+			for _, want := range []string{"altdb", "afrinic", "ripe_nonauth_route"} {
+				if !containsString(got, want) {
+					t.Fatalf("source filters for %s = %#v, want %s", host, got, want)
+				}
 			}
 		})
 	}
@@ -433,6 +480,322 @@ exit 5
 	}
 }
 
+func TestRunShadowRunCanCompareAgainstCachedWhoisReference(t *testing.T) {
+	dir := t.TempDir()
+	serviceDir := filepath.Join(dir, "sample")
+	if err := os.MkdirAll(serviceDir, 0o755); err != nil {
+		t.Fatalf("create service dir: %v", err)
+	}
+	writeFile(t, serviceDir, "downloader.sh", `#!/bin/bash
+set -euo pipefail
+curl -fsS https://example.invalid/feed.txt > sample/ipv4.txt
+whois -h whois.radb.net AS64500 | awk '/^route/ { print $2; }' >> sample/ipv4.txt
+`)
+	writeFile(t, serviceDir, "ipv4.txt", "198.51.100.0/24\n")
+	writeFile(t, serviceDir, "ipv6.txt", "")
+
+	fakeIrrindex := writeExecutable(t, dir, "fake-irrindex", `#!/bin/sh
+if [ "$1" != "whois-shim" ]; then
+  echo "unexpected fake irrindex args: $*" >&2
+  exit 2
+fi
+printf 'route:          10.0.0.0/24\n'
+`)
+	realBin := filepath.Join(dir, "real-bin")
+	if err := os.Mkdir(realBin, 0o755); err != nil {
+		t.Fatalf("create real-bin: %v", err)
+	}
+	writeExecutable(t, realBin, "whois", `#!/bin/sh
+echo "unexpected real whois: $*" >&2
+exit 4
+`)
+	writeExecutable(t, realBin, "curl", `#!/bin/sh
+echo "unexpected real curl: $*" >&2
+exit 5
+`)
+	t.Setenv("PATH", realBin+string(os.PathListSeparator)+os.Getenv("PATH"))
+
+	cacheDir := filepath.Join(dir, "response-cache")
+	if err := os.MkdirAll(filepath.Join(cacheDir, "curl"), 0o755); err != nil {
+		t.Fatalf("create curl cache dir: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Join(cacheDir, "whois"), 0o755); err != nil {
+		t.Fatalf("create whois cache dir: %v", err)
+	}
+	writeFile(t, filepath.Join(cacheDir, "curl"), "https___example.invalid_feed.txt", "203.0.113.0/24\n")
+	writeFile(t, filepath.Join(cacheDir, "whois"), "whois.radb.net_AS64500", "route:          10.0.0.0/24\n")
+
+	outDir := filepath.Join(dir, "shadow-report")
+	var stdout, stderr bytes.Buffer
+
+	code := run([]string{
+		"shadow-run",
+		"--repo", dir,
+		"--downloader", "sample",
+		"--db", filepath.Join(dir, "index.db"),
+		"--irrindex-bin", fakeIrrindex,
+		"--cache-dir", cacheDir,
+		"--reference", "cached-whois",
+		"--out", outDir,
+	}, &stdout, &stderr)
+
+	if code != 0 {
+		t.Fatalf("exit code = %d, want 0; stdout = %q stderr = %q", code, stdout.String(), stderr.String())
+	}
+	jsonData, err := os.ReadFile(filepath.Join(outDir, "comparison.json"))
+	if err != nil {
+		t.Fatalf("read shadow comparison json: %v", err)
+	}
+	if !strings.Contains(string(jsonData), `"comparison_scope": "local_whois_shadow_output_vs_cached_whois_shadow_output"`) {
+		t.Fatalf("comparison json = %s", jsonData)
+	}
+	if !strings.Contains(string(jsonData), `"status": "equal"`) {
+		t.Fatalf("comparison json = %s", jsonData)
+	}
+	if strings.Contains(string(jsonData), `198.51.100.0/24`) {
+		t.Fatalf("comparison used committed output: %s", jsonData)
+	}
+}
+
+func TestRunShadowRunTimesOutRealWhoisFallback(t *testing.T) {
+	dir := t.TempDir()
+	serviceDir := filepath.Join(dir, "sample")
+	if err := os.MkdirAll(serviceDir, 0o755); err != nil {
+		t.Fatalf("create service dir: %v", err)
+	}
+	writeFile(t, serviceDir, "downloader.sh", `#!/bin/bash
+set -euo pipefail
+curl -fsS https://example.invalid/feed.txt > sample/ipv4.txt
+whois -h whois.unknown.invalid AS64500 >> sample/ipv4.txt || true
+`)
+	writeFile(t, serviceDir, "ipv4.txt", "203.0.113.0/24\n")
+	writeFile(t, serviceDir, "ipv6.txt", "")
+
+	fakeIrrindex := writeExecutable(t, dir, "fake-irrindex", `#!/bin/sh
+echo "unexpected local whois shim: $*" >&2
+exit 2
+`)
+	realBin := filepath.Join(dir, "real-bin")
+	if err := os.Mkdir(realBin, 0o755); err != nil {
+		t.Fatalf("create real-bin: %v", err)
+	}
+	writeExecutable(t, realBin, "whois", `#!/bin/sh
+sleep 10
+printf 'route:          10.0.0.0/24\n'
+`)
+	writeExecutable(t, realBin, "curl", `#!/bin/sh
+echo "unexpected real curl: $*" >&2
+exit 5
+`)
+	t.Setenv("PATH", realBin+string(os.PathListSeparator)+os.Getenv("PATH"))
+	t.Setenv("SHADOW_WHOIS_TIMEOUT", "1")
+
+	cacheDir := filepath.Join(dir, "response-cache")
+	if err := os.MkdirAll(filepath.Join(cacheDir, "curl"), 0o755); err != nil {
+		t.Fatalf("create curl cache dir: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Join(cacheDir, "whois"), 0o755); err != nil {
+		t.Fatalf("create whois cache dir: %v", err)
+	}
+	writeFile(t, filepath.Join(cacheDir, "curl"), "https___example.invalid_feed.txt", "203.0.113.0/24\n")
+
+	outDir := filepath.Join(dir, "shadow-report")
+	var stdout, stderr bytes.Buffer
+	start := time.Now()
+
+	code := run([]string{
+		"shadow-run",
+		"--repo", dir,
+		"--downloader", "sample",
+		"--db", filepath.Join(dir, "index.db"),
+		"--irrindex-bin", fakeIrrindex,
+		"--cache-dir", cacheDir,
+		"--reference", "cached-whois",
+		"--out", outDir,
+	}, &stdout, &stderr)
+
+	if code != 0 {
+		t.Fatalf("exit code = %d, want 0; stdout = %q stderr = %q", code, stdout.String(), stderr.String())
+	}
+	if elapsed := time.Since(start); elapsed > 5*time.Second {
+		t.Fatalf("shadow-run took %s, want real whois fallback timeout", elapsed)
+	}
+	jsonData, err := os.ReadFile(filepath.Join(outDir, "comparison.json"))
+	if err != nil {
+		t.Fatalf("read shadow comparison json: %v", err)
+	}
+	if !strings.Contains(string(jsonData), `"status": "equal"`) {
+		t.Fatalf("comparison json = %s", jsonData)
+	}
+}
+
+func TestRunShadowRunRecordsCacheMissesForPairedRun(t *testing.T) {
+	dir := t.TempDir()
+	serviceDir := filepath.Join(dir, "sample")
+	if err := os.MkdirAll(serviceDir, 0o755); err != nil {
+		t.Fatalf("create service dir: %v", err)
+	}
+	writeFile(t, serviceDir, "downloader.sh", `#!/bin/bash
+set -euo pipefail
+curl -fsS https://example.invalid/feed.txt > sample/ipv4.txt
+whois -h whois.unknown.invalid AS64500 | awk '/^route:/ { print $2 }' >> sample/ipv4.txt
+`)
+	writeFile(t, serviceDir, "ipv4.txt", "203.0.113.0/24\n")
+	writeFile(t, serviceDir, "ipv6.txt", "")
+
+	fakeIrrindex := writeExecutable(t, dir, "fake-irrindex", `#!/bin/sh
+echo "unexpected local whois shim: $*" >&2
+exit 2
+`)
+	callLog := filepath.Join(dir, "real-calls.log")
+	realBin := filepath.Join(dir, "real-bin")
+	if err := os.Mkdir(realBin, 0o755); err != nil {
+		t.Fatalf("create real-bin: %v", err)
+	}
+	writeExecutable(t, realBin, "whois", `#!/bin/sh
+echo "whois $*" >> "`+callLog+`"
+printf 'route:          10.0.0.0/24\n'
+`)
+	writeExecutable(t, realBin, "curl", `#!/bin/sh
+echo "curl $*" >> "`+callLog+`"
+printf '203.0.113.0/24\n'
+`)
+	t.Setenv("PATH", realBin+string(os.PathListSeparator)+os.Getenv("PATH"))
+
+	cacheDir := filepath.Join(dir, "response-cache")
+	outDir := filepath.Join(dir, "shadow-report")
+	var stdout, stderr bytes.Buffer
+
+	code := run([]string{
+		"shadow-run",
+		"--repo", dir,
+		"--downloader", "sample",
+		"--db", filepath.Join(dir, "index.db"),
+		"--irrindex-bin", fakeIrrindex,
+		"--cache-dir", cacheDir,
+		"--reference", "cached-whois",
+		"--out", outDir,
+	}, &stdout, &stderr)
+
+	if code != 0 {
+		t.Fatalf("exit code = %d, want 0; stdout = %q stderr = %q", code, stdout.String(), stderr.String())
+	}
+	calls, err := os.ReadFile(callLog)
+	if err != nil {
+		t.Fatalf("read real call log: %v", err)
+	}
+	if got := strings.Count(string(calls), "whois "); got != 1 {
+		t.Fatalf("real whois calls = %d, want 1; log = %q", got, calls)
+	}
+	if got := strings.Count(string(calls), "curl "); got != 1 {
+		t.Fatalf("real curl calls = %d, want 1; log = %q", got, calls)
+	}
+	for _, path := range []string{
+		filepath.Join(cacheDir, "whois", "whois.unknown.invalid_AS64500"),
+		filepath.Join(cacheDir, "curl", "https___example.invalid_feed.txt"),
+	} {
+		if _, err := os.Stat(path); err != nil {
+			t.Fatalf("recorded cache file missing: %v", err)
+		}
+	}
+	jsonData, err := os.ReadFile(filepath.Join(outDir, "comparison.json"))
+	if err != nil {
+		t.Fatalf("read shadow comparison json: %v", err)
+	}
+	if !strings.Contains(string(jsonData), `"status": "equal"`) {
+		t.Fatalf("comparison json = %s", jsonData)
+	}
+}
+
+func TestRunShadowRunReplaysFailuresAndDNSForPairedRun(t *testing.T) {
+	dir := t.TempDir()
+	serviceDir := filepath.Join(dir, "sample")
+	if err := os.MkdirAll(serviceDir, 0o755); err != nil {
+		t.Fatalf("create service dir: %v", err)
+	}
+	writeFile(t, serviceDir, "downloader.sh", `#!/bin/bash
+set -euo pipefail
+dig TXT _netblocks.example.invalid +short @192.0.2.53 | tr -d '"' > sample/ipv4.txt
+curl -fsS https://example.invalid/flaky.txt >> sample/ipv4.txt || true
+`)
+	writeFile(t, serviceDir, "ipv4.txt", "203.0.113.0/24\n")
+	writeFile(t, serviceDir, "ipv6.txt", "")
+
+	fakeIrrindex := writeExecutable(t, dir, "fake-irrindex", `#!/bin/sh
+echo "unexpected local whois shim: $*" >&2
+exit 2
+`)
+	callLog := filepath.Join(dir, "real-calls.log")
+	realBin := filepath.Join(dir, "real-bin")
+	if err := os.Mkdir(realBin, 0o755); err != nil {
+		t.Fatalf("create real-bin: %v", err)
+	}
+	writeExecutable(t, realBin, "dig", `#!/bin/sh
+echo "dig $*" >> "`+callLog+`"
+printf '"203.0.113.0/24"\n'
+`)
+	// Fails the first time only: an unfrozen second run would see the feed.
+	writeExecutable(t, realBin, "curl", `#!/bin/sh
+echo "curl $*" >> "`+callLog+`"
+if [ -f "`+filepath.Join(dir, "curl-failed-once")+`" ]; then
+  printf '198.51.100.0/24\n'
+  exit 0
+fi
+touch "`+filepath.Join(dir, "curl-failed-once")+`"
+exit 22
+`)
+	writeExecutable(t, realBin, "whois", `#!/bin/sh
+echo "unexpected real whois: $*" >&2
+exit 4
+`)
+	t.Setenv("PATH", realBin+string(os.PathListSeparator)+os.Getenv("PATH"))
+
+	cacheDir := filepath.Join(dir, "response-cache")
+	outDir := filepath.Join(dir, "shadow-report")
+	var stdout, stderr bytes.Buffer
+
+	code := run([]string{
+		"shadow-run",
+		"--repo", dir,
+		"--downloader", "sample",
+		"--db", filepath.Join(dir, "index.db"),
+		"--irrindex-bin", fakeIrrindex,
+		"--cache-dir", cacheDir,
+		"--reference", "cached-whois",
+		"--out", outDir,
+	}, &stdout, &stderr)
+
+	if code != 0 {
+		t.Fatalf("exit code = %d, want 0; stdout = %q stderr = %q", code, stdout.String(), stderr.String())
+	}
+	calls, err := os.ReadFile(callLog)
+	if err != nil {
+		t.Fatalf("read real call log: %v", err)
+	}
+	if got := strings.Count(string(calls), "dig "); got != 1 {
+		t.Fatalf("real dig calls = %d, want 1; log = %q", got, calls)
+	}
+	if got := strings.Count(string(calls), "curl "); got != 1 {
+		t.Fatalf("real curl calls = %d, want 1 (failure replayed); log = %q", got, calls)
+	}
+	if _, err := os.Stat(filepath.Join(cacheDir, "curl", "https___example.invalid_flaky.txt")); !os.IsNotExist(err) {
+		t.Fatalf("failed response must not enter the persistent cache: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(cacheDir, "dig", "TXT__netblocks.example.invalid__short__192.0.2.53")); err != nil {
+		t.Fatalf("recorded dig answer missing: %v", err)
+	}
+	jsonData, err := os.ReadFile(filepath.Join(outDir, "comparison.json"))
+	if err != nil {
+		t.Fatalf("read shadow comparison json: %v", err)
+	}
+	if !strings.Contains(string(jsonData), `"status": "equal"`) {
+		t.Fatalf("comparison json = %s", jsonData)
+	}
+	if strings.Contains(string(jsonData), `198.51.100.0/24`) {
+		t.Fatalf("paired run fetched the flaky feed live: %s", jsonData)
+	}
+}
+
 func TestRunManifestSummarize(t *testing.T) {
 	dir := t.TempDir()
 	manifestPath := writeFile(t, dir, "snapshots.json", `[
@@ -531,6 +894,15 @@ func writeFile(t *testing.T, dir string, name string, body string) string {
 	return path
 }
 
+func containsString(values []string, want string) bool {
+	for _, value := range values {
+		if value == want {
+			return true
+		}
+	}
+	return false
+}
+
 func writeBytes(t *testing.T, path string, body []byte) {
 	t.Helper()
 
@@ -561,4 +933,28 @@ func gzipBytes(t *testing.T, body string) []byte {
 		t.Fatalf("gzip close: %v", err)
 	}
 	return buf.Bytes()
+}
+
+func TestWriteReplayShimQuotesRealToolPath(t *testing.T) {
+	dir := t.TempDir()
+	toolDir := filepath.Join(dir, `odd $TOOLS 'q" dir`)
+	if err := os.MkdirAll(toolDir, 0o755); err != nil {
+		t.Fatalf("create tool dir: %v", err)
+	}
+	realDig := writeExecutable(t, toolDir, "dig", `#!/bin/sh
+echo "real dig: $*"
+`)
+	shim := filepath.Join(dir, "dig-shim")
+	if err := writeReplayShim(shim, "dig", realDig); err != nil {
+		t.Fatalf("write shim: %v", err)
+	}
+	cmd := exec.Command(shim, "TXT", "example.invalid")
+	cmd.Env = append(os.Environ(), "SHADOW_RESPONSE_CACHE_DIR=", "TOOLS=")
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("run shim: %v; output = %q", err, out)
+	}
+	if string(out) != "real dig: TXT example.invalid\n" {
+		t.Fatalf("shim output = %q", out)
+	}
 }

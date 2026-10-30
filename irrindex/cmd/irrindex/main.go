@@ -15,8 +15,10 @@ import (
 	"github.com/antonme/ipranges/irrindex/internal/config"
 	"github.com/antonme/ipranges/irrindex/internal/fetch"
 	"github.com/antonme/ipranges/irrindex/internal/manifest"
+	"github.com/antonme/ipranges/irrindex/internal/mirrors"
 	routequery "github.com/antonme/ipranges/irrindex/internal/query"
 	"github.com/antonme/ipranges/irrindex/internal/ris"
+	"github.com/antonme/ipranges/irrindex/internal/rpki"
 	"github.com/antonme/ipranges/irrindex/internal/rpsl"
 	"github.com/antonme/ipranges/irrindex/internal/store"
 )
@@ -310,6 +312,7 @@ type shadowRunOptions struct {
 	outDir      string
 	irrindexBin string
 	cacheDir    string
+	reference   string
 	downloaders []string
 }
 
@@ -328,6 +331,7 @@ func runShadowRun(args []string, stdout, stderr io.Writer) int {
 	outDir := flags.String("out", "shadow-run-report", "output directory")
 	irrindexBin := flags.String("irrindex-bin", "", "irrindex executable path")
 	cacheDir := flags.String("cache-dir", "", "optional cached curl/whois response directory")
+	reference := flags.String("reference", "committed", "comparison reference: committed or cached-whois")
 	var downloaders downloaderFlag
 	flags.Var(&downloaders, "downloader", "downloader name; may be repeated or comma-separated")
 	if err := flags.Parse(args); err != nil {
@@ -344,6 +348,7 @@ func runShadowRun(args []string, stdout, stderr io.Writer) int {
 		outDir:      *outDir,
 		irrindexBin: *irrindexBin,
 		cacheDir:    *cacheDir,
+		reference:   *reference,
 		downloaders: append([]string(nil), downloaders...),
 	})
 	if err != nil {
@@ -397,6 +402,16 @@ func runShadowDownloaders(opts shadowRunOptions) (shadowRunResult, error) {
 			return shadowRunResult{}, fmt.Errorf("%s: find downloader.sh: %w", downloader, err)
 		}
 	}
+	reference := opts.reference
+	if reference == "" {
+		reference = "committed"
+	}
+	if reference != "committed" && reference != "cached-whois" {
+		return shadowRunResult{}, fmt.Errorf("unsupported reference %q", reference)
+	}
+	if reference == "cached-whois" && cacheDir == "" {
+		return shadowRunResult{}, fmt.Errorf("--reference cached-whois requires --cache-dir")
+	}
 
 	if err := os.MkdirAll(outDir, 0o755); err != nil {
 		return shadowRunResult{}, fmt.Errorf("create output dir: %w", err)
@@ -405,25 +420,28 @@ func runShadowDownloaders(opts shadowRunOptions) (shadowRunResult, error) {
 	if err != nil {
 		return shadowRunResult{}, fmt.Errorf("create work dir: %w", err)
 	}
-	shimDir := filepath.Join(workRoot, ".bin")
-	if err := os.MkdirAll(shimDir, 0o755); err != nil {
-		return shadowRunResult{}, fmt.Errorf("create shim dir: %w", err)
-	}
 	realWhois, _ := exec.LookPath("whois")
 	realCurl, _ := exec.LookPath("curl")
-	if err := writeWhoisShim(filepath.Join(shimDir, "whois")); err != nil {
+
+	if err := prepareShadowWorkRoot(repoRoot, workRoot, opts.downloaders); err != nil {
 		return shadowRunResult{}, err
 	}
-	if err := writeCurlShim(filepath.Join(shimDir, "curl")); err != nil {
-		return shadowRunResult{}, err
+	referenceRoot := repoRoot
+	if reference == "cached-whois" {
+		referenceRoot, err = os.MkdirTemp(outDir, "reference-")
+		if err != nil {
+			return shadowRunResult{}, fmt.Errorf("create reference work dir: %w", err)
+		}
+		if err := prepareShadowWorkRoot(repoRoot, referenceRoot, opts.downloaders); err != nil {
+			return shadowRunResult{}, err
+		}
 	}
 
-	if err := copyDir(filepath.Join(repoRoot, "utils"), filepath.Join(workRoot, "utils")); err != nil && !os.IsNotExist(err) {
-		return shadowRunResult{}, fmt.Errorf("copy utils: %w", err)
-	}
-	for _, downloader := range opts.downloaders {
-		if err := copyDir(filepath.Join(repoRoot, downloader), filepath.Join(workRoot, downloader)); err != nil {
-			return shadowRunResult{}, fmt.Errorf("copy %s: %w", downloader, err)
+	failureDir := ""
+	if cacheDir != "" {
+		failureDir, err = os.MkdirTemp(outDir, "failures-")
+		if err != nil {
+			return shadowRunResult{}, fmt.Errorf("create failure replay dir: %w", err)
 		}
 	}
 
@@ -434,28 +452,37 @@ func runShadowDownloaders(opts shadowRunOptions) (shadowRunResult, error) {
 	}
 	defer logFile.Close()
 
-	env := append(os.Environ(),
-		"PATH="+shimDir+string(os.PathListSeparator)+os.Getenv("PATH"),
-		"IRRINDEX_BIN="+irrindexBin,
-		"IRRINDEX_DB="+dbPath,
-		"REAL_WHOIS="+realWhois,
-		"REAL_CURL="+realCurl,
-		"SHADOW_RESPONSE_CACHE_DIR="+cacheDir,
-	)
-	for _, downloader := range opts.downloaders {
-		cmd := exec.Command("bash", filepath.Join(downloader, "downloader.sh"))
-		cmd.Dir = workRoot
-		cmd.Env = env
-		cmd.Stdout = logFile
-		cmd.Stderr = logFile
-		if err := cmd.Run(); err != nil {
-			return shadowRunResult{}, fmt.Errorf("%s: run downloader: %w; see %s", downloader, err, logPath)
+	if reference == "cached-whois" {
+		if err := runShadowWorkRoot(referenceRoot, opts.downloaders, shadowRunEnv{
+			dbPath:      dbPath,
+			irrindexBin: irrindexBin,
+			cacheDir:    cacheDir,
+			realWhois:   realWhois,
+			realCurl:    realCurl,
+			failureDir:  failureDir,
+			whoisMode:   "cache",
+		}, logFile, logPath); err != nil {
+			return shadowRunResult{}, err
 		}
 	}
+	if err := runShadowWorkRoot(workRoot, opts.downloaders, shadowRunEnv{
+		dbPath:      dbPath,
+		irrindexBin: irrindexBin,
+		cacheDir:    cacheDir,
+		realWhois:   realWhois,
+		realCurl:    realCurl,
+		failureDir:  failureDir,
+		whoisMode:   "local",
+	}, logFile, logPath); err != nil {
+		return shadowRunResult{}, err
+	}
 
-	report, err := indexcompare.BuildFileReport(repoRoot, workRoot, opts.downloaders)
+	report, err := indexcompare.BuildFileReport(referenceRoot, workRoot, opts.downloaders)
 	if err != nil {
 		return shadowRunResult{}, fmt.Errorf("compare shadow output: %w", err)
+	}
+	if reference == "cached-whois" {
+		report.ComparisonScope = "local_whois_shadow_output_vs_cached_whois_shadow_output"
 	}
 	jsonPath := filepath.Join(outDir, "comparison.json")
 	mdPath := filepath.Join(outDir, "comparison.md")
@@ -468,6 +495,70 @@ func runShadowDownloaders(opts shadowRunOptions) (shadowRunResult, error) {
 	return shadowRunResult{workRoot: workRoot, logPath: logPath, jsonPath: jsonPath, mdPath: mdPath}, nil
 }
 
+type shadowRunEnv struct {
+	dbPath      string
+	irrindexBin string
+	cacheDir    string
+	realWhois   string
+	realCurl    string
+	failureDir  string
+	whoisMode   string
+}
+
+func prepareShadowWorkRoot(repoRoot string, workRoot string, downloaders []string) error {
+	shimDir := filepath.Join(workRoot, ".bin")
+	if err := os.MkdirAll(shimDir, 0o755); err != nil {
+		return fmt.Errorf("create shim dir: %w", err)
+	}
+	if err := writeWhoisShim(filepath.Join(shimDir, "whois")); err != nil {
+		return err
+	}
+	if err := writeCurlShim(filepath.Join(shimDir, "curl")); err != nil {
+		return err
+	}
+	for _, tool := range []string{"dig", "nslookup"} {
+		realPath, _ := exec.LookPath(tool)
+		if err := writeReplayShim(filepath.Join(shimDir, tool), tool, realPath); err != nil {
+			return err
+		}
+	}
+
+	if err := copyDir(filepath.Join(repoRoot, "utils"), filepath.Join(workRoot, "utils")); err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("copy utils: %w", err)
+	}
+	for _, downloader := range downloaders {
+		if err := copyDir(filepath.Join(repoRoot, downloader), filepath.Join(workRoot, downloader)); err != nil {
+			return fmt.Errorf("copy %s: %w", downloader, err)
+		}
+	}
+	return nil
+}
+
+func runShadowWorkRoot(workRoot string, downloaders []string, runEnv shadowRunEnv, logFile *os.File, logPath string) error {
+	shimDir := filepath.Join(workRoot, ".bin")
+	env := append(os.Environ(),
+		"PATH="+shimDir+string(os.PathListSeparator)+os.Getenv("PATH"),
+		"IRRINDEX_BIN="+runEnv.irrindexBin,
+		"IRRINDEX_DB="+runEnv.dbPath,
+		"REAL_WHOIS="+runEnv.realWhois,
+		"REAL_CURL="+runEnv.realCurl,
+		"SHADOW_RESPONSE_CACHE_DIR="+runEnv.cacheDir,
+		"SHADOW_RUN_FAILURE_DIR="+runEnv.failureDir,
+		"SHADOW_WHOIS_MODE="+runEnv.whoisMode,
+	)
+	for _, downloader := range downloaders {
+		cmd := exec.Command("bash", filepath.Join(downloader, "downloader.sh"))
+		cmd.Dir = workRoot
+		cmd.Env = env
+		cmd.Stdout = logFile
+		cmd.Stderr = logFile
+		if err := cmd.Run(); err != nil {
+			return fmt.Errorf("%s: run downloader: %w; see %s", downloader, err, logPath)
+		}
+	}
+	return nil
+}
+
 func validateDownloaderName(name string) error {
 	if name == "" || filepath.IsAbs(name) || strings.Contains(name, "/") || strings.Contains(name, "\\") || strings.Contains(name, "..") {
 		return fmt.Errorf("invalid downloader name %q", name)
@@ -475,38 +566,105 @@ func validateDownloaderName(name string) error {
 	return nil
 }
 
+// shimCacheFuncs is shared by the shadow-run command shims. cached_run replays
+// a recorded response, or runs the real command once and records the outcome:
+// successes go to SHADOW_RESPONSE_CACHE_DIR, failures only to the per-invocation
+// SHADOW_RUN_FAILURE_DIR, so the paired run replays the same failure without a
+// transient outage poisoning later invocations.
+const shimCacheFuncs = `cache_key() {
+  printf '%s' "$1" | sed 's/[^A-Za-z0-9._-]/_/g'
+}
+
+cached_run() {
+  kind="$1"
+  key="$2"
+  shift 2
+  cache_file="${SHADOW_RESPONSE_CACHE_DIR}/${kind}/${key}"
+  if [ -f "${cache_file}" ]; then
+    cat "${cache_file}"
+    return 0
+  fi
+  failed_file=""
+  if [ -n "${SHADOW_RUN_FAILURE_DIR}" ]; then
+    failed_file="${SHADOW_RUN_FAILURE_DIR}/${kind}/${key}"
+    if [ -f "${failed_file}.status" ]; then
+      cat "${failed_file}"
+      return "$(cat "${failed_file}.status")"
+    fi
+  fi
+  mkdir -p "${SHADOW_RESPONSE_CACHE_DIR}/${kind}"
+  tmp="${cache_file}.tmp.$$"
+  "$@" > "${tmp}"
+  status="$?"
+  if [ "${status}" = "0" ]; then
+    mv "${tmp}" "${cache_file}"
+    echo "shadow ${kind} cache miss recorded: ${key}" >&2
+    cat "${cache_file}"
+    return 0
+  fi
+  if [ -n "${failed_file}" ]; then
+    mkdir -p "${SHADOW_RUN_FAILURE_DIR}/${kind}"
+    cp "${tmp}" "${failed_file}"
+    echo "${status}" > "${failed_file}.status"
+    echo "shadow ${kind} failure recorded for paired run: ${key} (exit ${status})" >&2
+  fi
+  cat "${tmp}"
+  rm -f "${tmp}"
+  return "${status}"
+}
+`
+
 func writeWhoisShim(path string) error {
 	body := `#!/bin/sh
-cache_key() {
-  printf '%s' "$1" | sed 's/[^A-Za-z0-9._-]/_/g'
+` + shimCacheFuncs + `
+run_real_whois() {
+  if [ -z "${REAL_WHOIS}" ]; then
+    echo "no real whois available for: $*" >&2
+    return 127
+  fi
+  timeout="${SHADOW_WHOIS_TIMEOUT:-30}"
+  if [ "${timeout}" = "0" ]; then
+    "${REAL_WHOIS}" "$@"
+    return "$?"
+  fi
+  "${REAL_WHOIS}" "$@" &
+  pid="$!"
+  elapsed=0
+  while kill -0 "${pid}" 2>/dev/null; do
+    if [ "${elapsed}" -ge "${timeout}" ]; then
+      kill "${pid}" 2>/dev/null || true
+      wait "${pid}" 2>/dev/null
+      return 124
+    fi
+    sleep 1
+    elapsed=$((elapsed + 1))
+  done
+  wait "${pid}"
+  return "$?"
 }
 
 host=""
 if [ "$1" = "-h" ]; then
   host="$2"
   shift 2
-  case "$host" in
-    riswhois.ripe.net|whois.radb.net|whois.ripe.net|rr.ntt.net|whois.rogerstelecom.net|whois.bgp.net.br)
-      exec "${IRRINDEX_BIN}" whois-shim --db "${IRRINDEX_DB}" -h "$host" "$@"
-      ;;
-  esac
+  if [ "${SHADOW_WHOIS_MODE}" != "cache" ]; then
+    case "$host" in
+      riswhois.ripe.net|whois.radb.net|whois.ripe.net|rr.ntt.net|whois.rogerstelecom.net|whois.bgp.net.br)
+        exec "${IRRINDEX_BIN}" whois-shim --db "${IRRINDEX_DB}" -h "$host" "$@"
+        ;;
+    esac
+  fi
   if [ -n "${SHADOW_RESPONSE_CACHE_DIR}" ]; then
-    key="$(cache_key "${host}_$*")"
-    cache_file="${SHADOW_RESPONSE_CACHE_DIR}/whois/${key}"
-    if [ -f "${cache_file}" ]; then
-      cat "${cache_file}"
-      exit 0
-    fi
+    cached_run whois "$(cache_key "${host}_$*")" run_real_whois -h "$host" "$@"
+    exit "$?"
   fi
 fi
-if [ -n "${REAL_WHOIS}" ]; then
-  if [ -n "${host}" ]; then
-    exec "${REAL_WHOIS}" -h "$host" "$@"
-  fi
-  exec "${REAL_WHOIS}" "$@"
+if [ -n "${host}" ]; then
+  run_real_whois -h "$host" "$@"
+else
+  run_real_whois "$@"
 fi
-echo "no real whois available for: $*" >&2
-exit 127
+exit "$?"
 `
 	if err := os.WriteFile(path, []byte(body), 0o755); err != nil {
 		return fmt.Errorf("write whois shim: %w", err)
@@ -516,10 +674,7 @@ exit 127
 
 func writeCurlShim(path string) error {
 	body := `#!/bin/sh
-cache_key() {
-  printf '%s' "$1" | sed 's/[^A-Za-z0-9._-]/_/g'
-}
-
+` + shimCacheFuncs + `
 if [ -n "${SHADOW_RESPONSE_CACHE_DIR}" ]; then
   saw_url=0
   all_cached=1
@@ -546,6 +701,28 @@ if [ -n "${SHADOW_RESPONSE_CACHE_DIR}" ]; then
     done
     exit 0
   fi
+  # Single-URL fetches to stdout are recorded for the paired shadow run;
+  # other invocations pass through.
+  if [ "${saw_url}" = "1" ] && [ -n "${REAL_CURL}" ]; then
+    url_count=0
+    writes_file=0
+    url=""
+    for arg in "$@"; do
+      case "$arg" in
+        http://*|https://*|ftp://*)
+          url_count=$((url_count + 1))
+          url="$arg"
+          ;;
+        -o|-O|--output|--remote-name|-o*|--output=*)
+          writes_file=1
+          ;;
+      esac
+    done
+    if [ "${url_count}" = "1" ] && [ "${writes_file}" = "0" ]; then
+      cached_run curl "$(cache_key "${url}")" "${REAL_CURL}" "$@"
+      exit "$?"
+    fi
+  fi
 fi
 
 if [ -n "${REAL_CURL}" ]; then
@@ -556,6 +733,33 @@ exit 127
 `
 	if err := os.WriteFile(path, []byte(body), 0o755); err != nil {
 		return fmt.Errorf("write curl shim: %w", err)
+	}
+	return nil
+}
+
+// shellQuote single-quotes a value for embedding in a generated sh script.
+func shellQuote(value string) string {
+	return "'" + strings.ReplaceAll(value, "'", `'\''`) + "'"
+}
+
+// writeReplayShim writes a shim that records and replays a DNS tool's output,
+// keyed by its full argument list, so paired shadow runs see the same answers.
+func writeReplayShim(path string, tool string, realPath string) error {
+	body := `#!/bin/sh
+` + shimCacheFuncs + `
+real=` + shellQuote(realPath) + `
+if [ -z "${real}" ]; then
+  echo "no real ` + tool + ` available for: $*" >&2
+  exit 127
+fi
+if [ -n "${SHADOW_RESPONSE_CACHE_DIR}" ]; then
+  cached_run ` + tool + ` "$(cache_key "$*")" "${real}" "$@"
+  exit "$?"
+fi
+exec "${real}" "$@"
+`
+	if err := os.WriteFile(path, []byte(body), 0o755); err != nil {
+		return fmt.Errorf("write %s shim: %w", tool, err)
 	}
 	return nil
 }
@@ -815,35 +1019,10 @@ func parseWhoisQuery(args []string) (string, string, error) {
 }
 
 func sourceFiltersForHost(host string) ([]string, bool) {
-	switch strings.ToLower(strings.TrimSpace(host)) {
-	case "":
+	if strings.TrimSpace(host) == "" {
 		return nil, true
-	case "whois.radb.net":
-		// RADb WHOIS answers include mirrored IRR sources; keep RIS separate
-		// because it is observed BGP data rather than an IRR mirror.
-		return []string{
-			"radb",
-			"arin_irr",
-			"ripe_route",
-			"ripe_route6",
-			"apnic_route",
-			"apnic_route6",
-			"nttcom",
-			"bgp_net_br",
-		}, true
-	case "whois.ripe.net":
-		return []string{"ripe", "ripe_route", "ripe_route6", "ripe_inetnum", "ripe_inet6num"}, true
-	case "riswhois.ripe.net":
-		return []string{"ris", "ris_ipv4", "ris_ipv6"}, true
-	case "rr.ntt.net":
-		return []string{"ntt", "nttcom", "nttcom_route", "nttcom_route6"}, true
-	case "whois.rogerstelecom.net":
-		return []string{"rogers", "rogerstelecom"}, true
-	case "whois.bgp.net.br":
-		return []string{"bgp_net_br", "bgp.net.br"}, true
-	default:
-		return nil, false
 	}
+	return mirrors.SourcesForHost(host)
 }
 
 func buildSource(db *store.DB, source config.Source, path string) (int, error) {
@@ -878,6 +1057,15 @@ func buildSource(db *store.DB, source config.Source, path string) (int, error) {
 			return 0, err
 		}
 		return len(records), nil
+	case "rpki_csv":
+		objects, err := rpki.ParseCSV(gz)
+		if err != nil {
+			return 0, fmt.Errorf("parse RPKI CSV: %w", err)
+		}
+		if err := db.InsertRPSLSource(source.Name, objects); err != nil {
+			return 0, err
+		}
+		return len(objects), nil
 	default:
 		return 0, fmt.Errorf("unsupported source format %q", source.Format)
 	}

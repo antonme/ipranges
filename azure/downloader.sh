@@ -10,7 +10,8 @@ set -x
 
 # get from public ranges
 download_and_parse() {
-    URL="$(curl -fsS --retry 3 --retry-delay 5 --retry-all-errors https://www.microsoft.com/en-us/download/confirmation.aspx?id=${1} | grep -o '<a href=['"'"'"][^"'"'"']*['"'"'"]' | grep ServiceTags_ | head -1 | sed -e 's/^<a href=["'"'"']//' -e 's/["'"'"']$//')"
+    URL="$(curl -fsSL --retry 3 --retry-delay 5 --retry-all-errors "https://www.microsoft.com/en-us/download/details.aspx?id=${1}" | rg -o 'https://download\.microsoft\.com/[^"<> ]+ServiceTags_[^"<> ]+\.json' | head -1)"
+    test -n "${URL}"
     curl -fsS --connect-timeout 60 --retry 3 --retry-delay 15 "${URL}" > /tmp/azure.json
     jq '.values[] | [.properties] | .[].addressPrefixes[] | select(. != null)' -r /tmp/azure.json > /tmp/azure-all.txt
 

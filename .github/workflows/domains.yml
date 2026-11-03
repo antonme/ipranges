@@ -1,0 +1,91 @@
+name: "Update domain lists"
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '20 4 * * *'
+    
+permissions:
+  contents: write
+
+jobs:
+  domains:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # sing-box нужен только для `rule-set compile`: .srs — формат апстрима,
+      # форк amnezia-box его не менял, поэтому готовый бинарь SagerNet подходит.
+      # Пин версии при желании: репозиторий → Settings → Variables → SB_VERSION=v1.12.4
+      - name: Fetch sing-box binary
+        env:
+          SB_VERSION: ${{ vars.SB_VERSION }}
+        run: |
+          set -euo pipefail
+          VER="${SB_VERSION:-$(curl -fsSL https://api.github.com/repos/SagerNet/sing-box/releases/latest | jq -r .tag_name)}"
+          echo "sing-box $VER"
+          curl -fsSL "https://github.com/SagerNet/sing-box/releases/download/${VER}/sing-box-${VER#v}-linux-amd64.tar.gz" | tar xz
+          mv "sing-box-${VER#v}-linux-amd64/sing-box" ./sing-box
+          chmod +x ./sing-box
+
+      - name: Build domain lists
+        run: |
+          set -euo pipefail
+          SING_BOX_BIN="$PWD/sing-box" bash domains/build.sh 2>&1 | tee /tmp/build.log
+          {
+            echo "## Domain lists build"
+            echo ""
+            echo '```'
+            cat /tmp/build.log
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Sanity floor
+        run: |
+          # Тот же принцип, что в update.yml: сломанный апстрим не должен
+          # затереть хороший список. Пустой результат или просадка >66%
+          # vs последний коммит -> откат файлов dist/ к HEAD.
+          set -uo pipefail
+          path="domains/dist/vpn-domains.lst"
+          reverted=0
+          if git cat-file -e "HEAD:$path" 2>/dev/null; then
+            old=$(git show "HEAD:$path" | wc -l | tr -d ' ')
+            new=$(wc -l < "$path" | tr -d ' ')
+            if [ "$old" -gt 0 ] && { [ "$new" -eq 0 ] || [ $((new * 3)) -lt "$old" ]; }; then
+              echo "REVERT: $path ($old -> $new lines)"
+              git checkout HEAD -- domains/dist/
+              reverted=1
+              {
+                echo "### ⚠️ Domain list reverted: $old -> $new lines"
+              } >> "$GITHUB_STEP_SUMMARY"
+            fi
+          fi
+          echo "reverted=$reverted" >> "$GITHUB_ENV"
+
+      - name: Commit files
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          git remote add github "https://${GITHUB_ACTOR}:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git pull github "${GITHUB_REF}" --ff-only
+          git config --local user.email "$(git log --format='%ae' --reverse | head -1)"
+          git config --local user.name "$(git log --format='%an' --reverse | head -1)"
+          git add domains/dist/
+          if [ -z "$(git status --porcelain)" ]; then
+            echo 'No changes'
+            exit 0
+          fi
+          git commit -m "Auto-update domain lists"
+          git push github "HEAD:${GITHUB_REF}"
+
+      - name: Alert on revert
+        if: always()
+        run: |
+          # Коммит с хорошими данными уже сделан (или откачен). Теперь можно
+          # поднять шум: красный джоб = письмо, если список пришлось откатить.
+          if [ "${reverted:-0}" = "1" ]; then
+            echo "::error::Domain list was reverted (empty or >66% drop) — check sources."
+            exit 1
+          fi
+          echo "No reverts — job stays green."

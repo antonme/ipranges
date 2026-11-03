@@ -1,0 +1,16 @@
+# Источники VPN-списка (домены, идущие в туннель). По URL на строку, # — комментарий.
+
+# itdoginfo/allow-domains, Russia/inside: заблокированные/недоступные из РФ ресурсы
+https://raw.githubusercontent.com/itdoginfo/allow-domains/main/Russia/inside-raw.lst
+
+# 1andrevich/Re-filter-lists, community-список (кюрируемый, с CDN-доменами)
+https://raw.githubusercontent.com/1andrevich/Re-filter-lists/main/community.lst
+
+# Antifilter Community: домены из реестра РКН, наполняется комьюнити
+https://community.antifilter.download/list/domains.lst
+
+# Dartraiden/no-russia-hosts: сервисы, геоблочащие РФ (OpenAI, Spotify и т.п.)
+https://raw.githubusercontent.com/Dartraiden/no-russia-hosts/master/hosts.txt
+
+# Re-filter domains_all: все списки репо суммарно (3x больше community.lst)
+# https://raw.githubusercontent.com/1andrevich/Re-filter-lists/main/domains_all.lst

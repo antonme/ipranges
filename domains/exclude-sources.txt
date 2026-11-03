@@ -1,0 +1,6 @@
+# Источники force-direct: домены отсюда ВЫЧИТАЮТСЯ из VPN-списка
+# (суффиксно: запись example.com вычитает и все её поддомены).
+
+# itdoginfo/allow-domains, Russia/outside: российские сервисы, блокирующие
+# зарубежные IP (госуслуги, маркетплейсы и т.п.)
+https://raw.githubusercontent.com/itdoginfo/allow-domains/main/Russia/outside-raw.lst

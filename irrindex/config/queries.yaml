@@ -732,6 +732,24 @@ queries:
         - bgp_net_br
     - downloader: rugov
       kind: mnt-by
+      value: DDOS-GUARD-5-MNT
+      mirrors:
+        - ripe
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: rugov
+      kind: mnt-by
+      value: DDOS-GUARD-MNT3
+      mirrors:
+        - ripe
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: rugov
+      kind: mnt-by
       value: FSS-MNT
       mirrors:
         - ripe
@@ -813,7 +831,88 @@ queries:
         - bgp_net_br
     - downloader: rugov
       kind: origin
+      value: AS13029
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: rugov
+      kind: origin
+      value: AS196721
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: rugov
+      kind: origin
+      value: AS196747
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: rugov
+      kind: origin
+      value: AS196894
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: rugov
+      kind: origin
+      value: AS197668
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: rugov
+      kind: origin
+      value: AS198688
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: rugov
+      kind: origin
       value: AS199148
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: rugov
+      kind: origin
+      value: AS201643
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: rugov
+      kind: origin
+      value: AS203725
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: rugov
+      kind: origin
+      value: AS208605
       mirrors:
         - ris
         - radb
@@ -831,7 +930,124 @@ queries:
         - bgp_net_br
     - downloader: rugov
       kind: origin
+      value: AS31379
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: rugov
+      kind: origin
       value: AS33972
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: rugov
+      kind: origin
+      value: AS34500
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: rugov
+      kind: origin
+      value: AS34887
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: rugov
+      kind: origin
+      value: AS39562
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: rugov
+      kind: origin
+      value: AS42056
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: rugov
+      kind: origin
+      value: AS44560
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: rugov
+      kind: origin
+      value: AS51882
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: rugov
+      kind: origin
+      value: AS56581
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: rugov
+      kind: origin
+      value: AS56613
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: rugov
+      kind: origin
+      value: AS56725
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: rugov
+      kind: origin
+      value: AS57145
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: rugov
+      kind: origin
+      value: AS57580
+      mirrors:
+        - ris
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: rugov
+      kind: origin
+      value: AS57637
       mirrors:
         - ris
         - radb
@@ -879,6 +1095,15 @@ queries:
       value: SBRF-mnt
       mirrors:
         - ripe
+        - radb
+        - ntt
+        - rogers
+        - bgp_net_br
+    - downloader: scaleway
+      kind: origin
+      value: AS12876
+      mirrors:
+        - ris
         - radb
         - ntt
         - rogers

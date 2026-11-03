@@ -50,6 +50,42 @@ get_maintained 'VGTRK-MNT' >> /tmp/rugov.txt || echo 'failed'
 get_maintained 'FSS-MNT' >> /tmp/rugov.txt || echo 'failed'
 #fsin+
 get_maintained 'RUWEB-MNT-RIPE' >> /tmp/rugov.txt || echo 'failed'
+#ddos-guard (RU-LLCDDOS)
+get_maintained 'DDOS-GUARD-5-MNT' >> /tmp/rugov.txt || echo 'failed'
+get_maintained 'DDOS-GUARD-MNT3' >> /tmp/rugov.txt || echo 'failed'
+#esia.gosuslugi.ru,digital.gov.ru (Electronic-government)
+get_routes AS196747 >> /tmp/rugov.txt || echo 'failed'
+#mvd gtssizi
+get_routes AS44560 >> /tmp/rugov.txt || echo 'failed'
+#ffoms
+get_routes AS57145 >> /tmp/rugov.txt || echo 'failed'
+#minek
+get_routes AS42056 >> /tmp/rugov.txt || echo 'failed'
+#rosim
+get_routes AS31379 >> /tmp/rugov.txt || echo 'failed'
+#rostransnadzor
+get_routes AS198688 >> /tmp/rugov.txt || echo 'failed'
+#ctspi mga
+get_routes AS34500 >> /tmp/rugov.txt || echo 'failed'
+#mid
+get_routes AS57580 >> /tmp/rugov.txt || echo 'failed'
+#goznak
+get_routes AS56725 >> /tmp/rugov.txt || echo 'failed'
+#regional e-gov: spb, tatarstan, sverdlovsk, tyumen, amur, chuvashia, penza
+get_routes AS203725 >> /tmp/rugov.txt || echo 'failed'
+get_routes AS34887 >> /tmp/rugov.txt || echo 'failed'
+get_routes AS201643 >> /tmp/rugov.txt || echo 'failed'
+get_routes AS196894 >> /tmp/rugov.txt || echo 'failed'
+get_routes AS39562 >> /tmp/rugov.txt || echo 'failed'
+get_routes AS56581 >> /tmp/rugov.txt || echo 'failed'
+get_routes AS13029 >> /tmp/rugov.txt || echo 'failed'
+get_routes AS56613 >> /tmp/rugov.txt || echo 'failed'
+#regional governments: sakhalin, kirov, magadan, khabarovsk, kurgan
+get_routes AS196721 >> /tmp/rugov.txt || echo 'failed'
+get_routes AS197668 >> /tmp/rugov.txt || echo 'failed'
+get_routes AS208605 >> /tmp/rugov.txt || echo 'failed'
+get_routes AS57637 >> /tmp/rugov.txt || echo 'failed'
+get_routes AS51882 >> /tmp/rugov.txt || echo 'failed'
 
 # save ipv4
 awk '$0 !~ /:/ && $0 != "0.0.0.0/0" { print }' /tmp/rugov.txt > /tmp/rugov-ipv4.txt

@@ -10,7 +10,7 @@ set -x
 
 
 
-curl -fsS --retry 3 --retry-delay 5 --retry-all-errors https://api.mullvad.net/app/v1/relays| jq -r "(.openvpn // .wireguard // .bridge).relays[].ipv4_addr_in"|sort -u >/tmp/mullvad-ipv4.txt
+curl -fsS --retry 3 --retry-delay 5 --retry-all-errors https://api.mullvad.net/app/v1/relays| jq -r "(.wireguard // .bridge).relays[].ipv4_addr_in"|sort -u >/tmp/mullvad-ipv4.txt
 
 curl -fsS --retry 3 --retry-delay 5 --retry-all-errors https://api.mullvad.net/app/v1/relays| jq -r "(.wireguard // .bridge).relays[].ipv6_addr_in"|awk '{print $0"/128"}'|sort -u >/tmp/mullvad-ipv6.txt
 
